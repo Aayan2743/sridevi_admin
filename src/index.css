@@ -1,0 +1,128 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+.input {
+  @apply w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500;
+}
+
+.label {
+  @apply block text-sm font-medium text-gray-600 mb-1;
+}
+
+@media print {
+  body {
+    background: white;
+  }
+
+  .print\:hidden {
+    display: none !important;
+  }
+
+  @page {
+    size: A4;
+    margin: 10mm;
+  }
+}
+
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+.animate-slide-in {
+  animation: slideInRight 0.3s ease-out;
+}
+
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.6s ease-out forwards;
+}
+
+/* dddd */
+.input {
+  @apply w-full rounded-lg border border-gray-300 bg-white px-3 py-2
+  text-sm text-gray-800 placeholder-gray-400
+  focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500
+  transition;
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-scaleIn {
+  animation: scaleIn 0.15s ease-out;
+}
+
+
+.input {
+  @apply w-full rounded-lg border border-gray-300 bg-white px-3 py-2
+  text-sm text-gray-800 placeholder-gray-400
+  focus:outline-none focus:ring-2 focus:ring-indigo-500
+  transition;
+}
+
+
+/* Compact inputs for variant table */
+.mini-input {
+  @apply w-16 rounded-md border border-gray-300
+  px-2 py-1 text-sm
+  focus:outline-none focus:ring-2 focus:ring-indigo-500;
+}
+
+/* Upload button */
+.upload-btn {
+  @apply px-3 py-1.5 rounded-md border
+  text-sm text-gray-700
+  hover:bg-gray-100 transition;
+}
+
+
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+.animate-slideIn {
+  animation: slideIn 0.3s ease-out;
+}
+
+
+.ProseMirror ul {
+  list-style-type: disc;
+  padding-left: 1.5rem;
+}
+
+.ProseMirror ol {
+  list-style-type: decimal;
+  padding-left: 1.5rem;
+  
+}
