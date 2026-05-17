@@ -37,10 +37,12 @@
     "react-beautiful-dnd": "^13.1.1",
     "react-dom": "^19.2.0",
     "react-hot-toast": "^2.6.0",
+    "react-is": "^19.2.6",
     "react-router-dom": "^7.11.0",
     "react-toastify": "^11.0.5",
     "recharts": "^3.7.0",
-    "sweetalert2": "^11.26.24"
+    "sweetalert2": "^11.26.24",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
