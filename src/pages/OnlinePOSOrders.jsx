@@ -2,9 +2,11 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../api/axios";
 
+const PLACEHOLDER_IMG = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40' fill='%23e5e7eb'%3E%3Crect width='40' height='40'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dy='.3em' font-size='16' fill='%239ca3af'%3E📦%3C/text%3E%3C/svg%3E";
+
 const STATUS_OPTIONS = ["confirmed", "packing", "shipping", "delivered"];
 
-export default function POSOrders() {
+export default function OnlinePOSOrders() {
   const navigate = useNavigate();
 
   /* ================= STATE ================= */
@@ -25,8 +27,9 @@ export default function POSOrders() {
       const res = await api.post("/admin-dashboard/pos/check-payment-status", {
         sale_id: saleId,
       });
-      if (res.data.success) {
-        alert(`✅ Payment received!\nInvoice: ${res.data.data.invoice_number}\nAmount: ₹${res.data.data.grand_total}\nStatus: ${res.data.data.status}`);
+      if (res.data.success || res.data.data?.status === "complete") {
+        alert(`✅ Payment received!\nInvoice: ${res.data.data.invoice_number || "-"}\nAmount: ₹${res.data.data.grand_total || "-"}\nStatus: ${res.data.data.status}`);
+        loadOrders(); // refresh list so badge updates
       } else {
         alert(`⏳ Payment not yet received.\n${res.data.message || "Please check again later."}`);
       }
@@ -49,16 +52,16 @@ export default function POSOrders() {
   });
 
   /* ================= FETCH ORDERS ================= */
-  const loadOrders = async (p = 1) => {
+  const loadOrders = async (p = page) => {
     try {
       setLoading(true);
-      setPage(p);
       const params = { page: p, per_page: perPage };
       if (search) params.search = search;
-      const res = await api.get("/admin-dashboard/pos/walk-in-orders", { params });
+      const res = await api.get("/admin-dashboard/calling/online-pos-orders", { params });
       const d = res.data.data;
       setOrders(d.data || []);
       setTotalPages(d.last_page || 1);
+      setPage(d.current_page || 1);
     } catch (e) {
       console.error(e);
     } finally {
@@ -135,7 +138,7 @@ export default function POSOrders() {
   /* ================= UI ================= */
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-semibold">Walk-in POS Orders</h1>
+      <h1 className="text-2xl font-semibold">Online POS Orders</h1>
 
       <div className="flex gap-2">
         <input
@@ -164,8 +167,10 @@ export default function POSOrders() {
                 <th className="p-3">Invoice</th>
                 <th className="p-3">Customer</th>
                 <th className="p-3">Phone</th>
+                <th className="p-3">Products</th>
                 <th className="p-3 text-right">Total</th>
                 <th className="p-3">Payment</th>
+                <th className="p-3">Shipping</th>
                 <th className="p-3">Status</th>
                 <th className="p-3">Date</th>
                 <th className="p-3">Actions</th>
@@ -176,12 +181,39 @@ export default function POSOrders() {
               {orders.map((o, i) => (
                 <tr key={o.id} className="border-t hover:bg-gray-50">
                   <td className="p-3">{(page - 1) * perPage + i + 1}</td>
-                  <td className="p-3 font-medium">{o.invoice_number || `SALE-${o.id}`}</td>
+                  <td className="p-3 font-medium">{o.invoice_number || `ORD-${o.id}`}</td>
                   <td className="p-3">{o.customer_name || o.customer?.name || o.user?.name || "-"}</td>
                   <td className="p-3">{o.customer_phone || o.customer?.phone || o.user?.phone || "-"}</td>
+                  <td className="p-3">
+                    <div className="flex -space-x-1.5 items-center" title={(o.items || []).map(it => it.product_name + (it.variant_name ? ` (${it.variant_name})` : '')).join(', ')}>
+                      {(o.items || []).slice(0, 4).map((item, idx) => (
+                        <img
+                          key={idx}
+                          src={item.product_image || PLACEHOLDER_IMG}
+                          alt={item.product_name || 'Item'}
+                          className="w-7 h-7 rounded-full border-2 border-white object-cover shadow-sm"
+                          onError={(e) => { e.target.src = PLACEHOLDER_IMG; }}
+                        />
+                      ))}
+                      {(o.items || []).length > 4 && (
+                        <span className="w-7 h-7 rounded-full bg-gray-100 border-2 border-white flex items-center justify-center text-[10px] font-medium text-gray-500 shadow-sm">
+                          +{o.items.length - 4}
+                        </span>
+                      )}
+                      {(o.items || []).length === 0 && (
+                        <span className="text-[11px] text-gray-400 italic">—</span>
+                      )}
+                    </div>
+                  </td>
                   <td className="p-3 text-right font-semibold">₹ {o.grand_total}</td>
                   <td className="p-3">
                     <span className="text-xs capitalize">{o.payment_method || "-"}</span>
+                  </td>
+                  <td className="p-3 space-y-1">
+                    {shipmentBadge(o.shipment_status)}
+                    {o.awb_no && (
+                      <div className="text-xs text-gray-500">AWB: {o.awb_no}</div>
+                    )}
                   </td>
                   <td className="p-3">
                     <span className={`px-2 py-1 rounded text-xs capitalize ${
@@ -243,8 +275,8 @@ export default function POSOrders() {
 
               {orders.length === 0 && (
                 <tr>
-                  <td colSpan={9} className="p-6 text-center text-gray-400">
-                    No walk-in POS orders found.
+                  <td colSpan={11} className="p-6 text-center text-gray-400">
+                    No online POS orders found.
                   </td>
                 </tr>
               )}

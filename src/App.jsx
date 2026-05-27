@@ -16,6 +16,7 @@ import Employees from "./pages/Employees";
 import OrdersPage from "./pages/OrdersPage";
 import OrderDetail from "./pages/OrderDetail";
 import POS from "./pos/POS";
+import OnlinePOS from "./online-pos/POS";
 import POSOrders from "./pages/POSOrders";
 import POSOrderView from "./pages/POSOrderView";
 import CustomerCombinedReport from "./pages/CustomerCombinedReport";
@@ -26,6 +27,7 @@ import CustomerManagement from "./pages/CustomerManagement";
 import CustomerOrders from "./pages/CustomerOrders";
 import ManualOrderDetails from "./pages/ManualOrderDetails";
 import ManualOrders from "./pages/ManualOrders";
+import OnlinePOSOrders from "./pages/OnlinePOSOrders";
 
 import SettingsPage from "./pages/settings/SettingsPage";
 import ProfileSettings from "./pages/settings/components/ProfileSettings";
@@ -51,6 +53,7 @@ import SuperSettings from "./pages/superadmin/Settings";
 
 /* EXTRA */
 import Unauthorized from "./pages/Unauthorized";
+import InvoicePayment from "./pages/InvoicePayment";
 import SuperAdminLoginUI from "./pages/SuperAdminLoginUI";
 import { SuperAdminAuthProvider } from "./auth/SuperAdminAuthContext";
 import SuperAdminRoute from "./auth/SuperAdminRoute";
@@ -195,10 +198,28 @@ function AppRoutes() {
         />
 
         <Route
+          path="/online-pos"
+          element={
+            <PrivateRoute permission="pos.view">
+              <OnlinePOS />
+            </PrivateRoute>
+          }
+        />
+
+        <Route
           path="/pos/orders"
           element={
             <PrivateRoute permission="pos_orders.view">
               <ManualOrders />
+            </PrivateRoute>
+          }
+        />
+
+        <Route
+          path="/online-pos-order"
+          element={
+            <PrivateRoute permission="pos_orders.view">
+              <OnlinePOSOrders />
             </PrivateRoute>
           }
         />
@@ -486,6 +507,9 @@ function AppRoutes() {
   /> */}
         </Route>
       </Route>
+
+      {/* PUBLIC — Invoice Payment (no auth) */}
+      <Route path="/pay/:token" element={<InvoicePayment />} />
 
       {/* FALLBACK */}
       <Route path="*" element={<Navigate to="/login" />} />

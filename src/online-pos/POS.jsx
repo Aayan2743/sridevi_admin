@@ -8,7 +8,7 @@ import { useAuth } from "../auth/AuthContext";
 import AccessDenied from "../pages/components/AccessDenied";
 import { showErrorToast, showSuccessToast } from "../utils/swal";
 
-export default function POS() {
+export default function OnlinePOS() {
 
     const { can } = useAuth();
 
@@ -48,12 +48,11 @@ const [barcode, setBarcode] = useState("");
 
 
 
-
 const searchByBarcode = async (code) => {
   try {
 
     const res = await api.get(
-      `/admin-dashboard/offline-store/product-by-barcode/${code}`
+      `/admin-dashboard/product/product-by-barcode/${code}`
     );
 
     const product = res.data;
@@ -156,28 +155,18 @@ const handleBarcodeKeyDown = (e) => {
   }, []);
 
   /* ================= LOAD PRODUCTS ================= */
-  // useEffect(() => {
-  //   setCurrentPage(1); // Reset to first page when category changes
-  //   api
-  //     .get("/admin-dashboard/pos-products", {
-  //       params: { category }, // removed brand
-  //     })
-  //     .then((r) => setProducts(r.data.data))
-  //     .catch((err) => console.error("Product fetch error:", err));
-  // }, [category]);
-
   useEffect(() => {
   setCurrentPage(1);
 
-  console.log("Selected Category:", category); // ✅ log category
+  console.log("Selected Category:", category);
 
   api
-    .get("/admin-dashboard/offline-store/pos-products", {
+    .get("/admin-dashboard/pos-products", {
       params: { category },
     })
     .then((r) => {
-      console.log("API Response:", r); // full response
-      console.log("Products Data:", r.data.data); // actual data
+      console.log("API Response:", r);
+      console.log("Products Data:", r.data.data);
 
       setProducts(r.data.data);
     })
@@ -206,7 +195,7 @@ const handleBarcodeKeyDown = (e) => {
     }
 
     try {
-      const res = await api.get("/admin-dashboard/offline-store/pos-products-search", {
+      const res = await api.get("/admin-dashboard/pos-products-search", {
         params: { search: value },
       });
 
@@ -226,15 +215,15 @@ const handleBarcodeKeyDown = (e) => {
       const payload = {
         items: cart.map((item) => ({
           product_id: item.product_id,
-          variant_combination_id: item.variation_id,
-          quantity: item.qty,
+          variant_id: item.variation_id,
+          qty: item.qty,
         })),
         payment_method: "cash",
         paid_amount: cart.reduce((sum, item) => sum + item.price * item.qty, 0),
         customer_name: "Walk-in Customer",
       };
 
-      const res = await api.post("/admin-dashboard/offline-store/create-order", payload);
+      const res = await api.post("/admin-dashboard/pos/create-order", payload);
 
       showSuccessToast("Order placed successfully");
 
@@ -242,7 +231,7 @@ const handleBarcodeKeyDown = (e) => {
       setCart([]);
 
       // Refresh products (stock updated)
-      const refresh = await api.get("/admin-dashboard/offline-store/pos-products", {
+      const refresh = await api.get("/admin-dashboard/pos-products", {
         params: { category },
       });
 
@@ -364,7 +353,6 @@ const handleBarcodeKeyDown = (e) => {
 
   return (
 
-
     
     <div className="flex h-screen overflow-hidden bg-slate-100">
 
@@ -375,7 +363,7 @@ const handleBarcodeKeyDown = (e) => {
         <div className="rounded-2xl border border-slate-200 bg-gradient-to-r from-white to-indigo-50/40 p-4 shadow-sm">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <h1 className="text-xl font-semibold text-slate-900">Offline POS Terminal</h1>
+              <h1 className="text-xl font-semibold text-slate-900">Online POS Terminal</h1>
               <p className="text-sm text-slate-500">
                 Fast billing, barcode-ready checkout, and touch-friendly product selection.
               </p>
@@ -501,21 +489,6 @@ const handleBarcodeKeyDown = (e) => {
               onChange={(e) => handleSearch(e.target.value)}
               className="mb-3 h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm text-slate-700 outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100"
             />
-
-            {/* <div className="max-h-[300px] overflow-y-auto">
-              {searchResults.map((p) => (
-                <div
-                  key={p.id}
-                  onClick={() => {
-                    handleProductClick(p);
-                    setOpenSearch(false);
-                  }}
-                  className="p-2 border-b cursor-pointer hover:bg-gray-100"
-                >
-                  {p.name}
-                </div>
-              ))}
-            </div> */}
 
             <div className="max-h-[300px] overflow-y-auto">
   {searchResults.map((p) => (

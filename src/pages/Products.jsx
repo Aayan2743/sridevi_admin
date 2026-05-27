@@ -6,6 +6,8 @@ import EditStoreStockDrawer from "./components/EditStoreStockDrawer";
 import EditProductDrawer from "./components/EditProductDrawer";
 import StatusBadge from "./components/StatusBadge";
 import ProductSectionAssign from "./settings/components/ProductSectionAssign";
+import BulkProductUpload from "./components/BulkProductUpload";
+import BulkVariationUpload from "./components/BulkVariationUpload";
 import { useAuth } from "../auth/AuthContext";
 
 import {
@@ -34,6 +36,8 @@ export default function Products() {
   const [perPage, setPerPage] = useState(10);
   const [totalPages, setTotalPages] = useState(1);
 
+  const [bulkOpen, setBulkOpen] = useState(false); // 🔥 bulk upload modal
+  const [bulkVariantOpen, setBulkVariantOpen] = useState(false); // 🔥 bulk variation upload modal
   const [openAdd, setOpenAdd] = useState(false);
   const [openAddStoreStock, setOpenAddStoreStock] = useState(false);
   const [addMenuOpen, setAddMenuOpen] = useState(false);
@@ -426,6 +430,20 @@ export default function Products() {
                   Online Products
                 </button>
               </div>
+
+              {/* 🔥 BULK UPLOAD buttons (always visible) */}
+              <button
+                onClick={() => setBulkOpen(true)}
+                className="h-12 rounded-2xl border border-indigo-200 bg-white px-5 text-sm font-semibold text-indigo-600 shadow-sm transition hover:bg-indigo-50"
+              >
+                Bulk Upload Products
+              </button>
+              <button
+                onClick={() => setBulkVariantOpen(true)}
+                className="h-12 rounded-2xl border border-violet-200 bg-white px-5 text-sm font-semibold text-violet-600 shadow-sm transition hover:bg-violet-50"
+              >
+                Bulk Variations
+              </button>
 
               {/* 🔥 ADD */}
               {can("product.add") && (
@@ -927,6 +945,26 @@ export default function Products() {
             </div>
           </div>
         )}
+
+        {/* 🔥 BULK UPLOAD MODAL */}
+        <BulkProductUpload
+          open={bulkOpen}
+          onClose={() => setBulkOpen(false)}
+          onSuccess={() => {
+            setBulkOpen(false);
+            fetchProducts();
+          }}
+        />
+
+        {/* 🔥 BULK VARIATION UPLOAD MODAL */}
+        <BulkVariationUpload
+          open={bulkVariantOpen}
+          onClose={() => setBulkVariantOpen(false)}
+          onSuccess={() => {
+            setBulkVariantOpen(false);
+            fetchProducts();
+          }}
+        />
       </div>
     </div>
   );

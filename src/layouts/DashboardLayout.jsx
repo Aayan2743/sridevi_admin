@@ -29,7 +29,9 @@ export default function DashboardLayout() {
       label: "Orders",
       items: [
         { label: "POS", path: "/pos" },
+        { label: "Online", path: "/online-pos" },
         { label: "POS Orders", path: "/pos/orders" },
+        { label: "Online POS Orders", path: "/online-pos-order" },
         { label: "Online Orders", path: "/online-orders" },
       ],
     },
