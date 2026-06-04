@@ -19,6 +19,27 @@ export default function POSOrderView() {
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  /* ================= PARSE ITEMS (snapshot JSON string → array) ================= */
+  const parsedItems = useMemo(() => {
+    if (!order) return [];
+
+    // If items is a JSON string, parse it
+    if (typeof order.items === "string") {
+      try {
+        return JSON.parse(order.items);
+      } catch {
+        return [];
+      }
+    }
+
+    // If items is already an array, return as-is
+    if (Array.isArray(order.items)) {
+      return order.items;
+    }
+
+    return [];
+  }, [order]);
+
   /* ================= LOAD ORDER ================= */
   useEffect(() => {
     loadOrder();
@@ -40,12 +61,11 @@ export default function POSOrderView() {
 
   /* ================= CALCULATIONS ================= */
   const itemsTotal = useMemo(() => {
-    if (!order) return 0;
-    return order.items.reduce(
-      (sum, i) => sum + Number(i.quantity) * Number(i.price),
+    return parsedItems.reduce(
+      (sum, i) => sum + Number(i.qty ?? i.quantity ?? 1) * Number(i.price ?? 0),
       0,
     );
-  }, [order]);
+  }, [parsedItems]);
 
   if (loading) return <div className="p-6">Loading order...</div>;
   if (!order) return <div className="p-6">Order not found</div>;
@@ -128,61 +148,107 @@ export default function POSOrderView() {
         {/* ================= ITEMS ================= */}
         <div className="lg:col-span-2 bg-white rounded-xl shadow-sm p-4">
           <h3 className="text-lg font-semibold mb-4">
-            Items ({order.items.length})
+            Items ({parsedItems.length})
           </h3>
 
           <div className="max-h-[520px] overflow-y-auto space-y-3 pr-2">
-            {order.items.map((item) => (
-              <div
-                key={item.id}
-                className="flex items-center gap-4 border rounded-xl p-3 hover:bg-gray-50"
-              >
-                <div className="h-16 w-16 rounded-lg overflow-hidden border bg-gray-100">
-                  <img
-                    src={
-                      item.product?.images?.find((i) => i.is_primary)
-                        ?.image_url ||
-                      item.product?.images?.[0]?.image_url ||
-                      "/no-image.png"
-                    }
-                    alt={item.product?.name}
-                    className="h-full w-full object-cover"
-                  />
+            {parsedItems.map((item, idx) => {
+              const qty = Number(item.qty ?? item.quantity ?? 1);
+              const price = Number(item.price ?? 0);
+              const mrp = Number(item.MRP ?? item.mrp ?? 0);
+              const discount = Number(item.discount ?? 0);
+              const lineTotal = price * qty;
 
-                  <p className="font-medium text-sm">{item.product?.name}</p>
+              return (
+                <div
+                  key={item.id ?? idx}
+                  className="flex items-center gap-4 border rounded-xl p-3 hover:bg-gray-50"
+                >
+                  <div className="h-16 w-16 rounded-lg overflow-hidden border bg-gray-100 shrink-0">
+                    <img
+                      src={
+                        item.product?.images?.find((i) => i.is_primary)
+                          ?.image_url ||
+                        item.product?.images?.[0]?.image_url ||
+                        "/no-image.png"
+                      }
+                      alt={item.product_name || "Product"}
+                      className="h-full w-full object-cover"
+                    />
+                  </div>
+
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-sm truncate">
+                      {item.product_name || `Product #${item.product_id}`}
+                    </p>
+                    {item.variation_name && (
+                      <p className="text-xs text-gray-400 truncate">
+                        {item.variation_name}
+                      </p>
+                    )}
+                    <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-gray-500 mt-0.5">
+                      <span>Qty: {qty}</span>
+                      <span>Rate: ₹{price.toFixed(2)}</span>
+                      {mrp > 0 && <span>MRP: ₹{mrp.toFixed(2)}</span>}
+                      {discount > 0 && (
+                        <span className="text-rose-600">
+                          Disc: ₹{discount.toFixed(2)}
+                        </span>
+                      )}
+                      {item.tax?.gst_enabled && item.tax?.gst_type === "exclusive" && (
+                        <span className="text-emerald-600">
+                          GST: {item.tax.gst_percent}%
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="font-semibold text-sm whitespace-nowrap">
+                    ₹{lineTotal.toFixed(2)}
+                  </div>
                 </div>
-
-                <div className="flex-1">
-                  <p className="font-medium text-sm">
-                    {item.product_name || `Product #${item.product_id}`}
-                  </p>
-
-                  <p className="text-xs text-gray-400">
-                    Qty {item.quantity} × ₹{item.price}
-                  </p>
-                </div>
-
-                <div className="font-semibold text-sm">
-                  ₹ {item.quantity * item.price}
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 
         {/* ================= SUMMARY ================= */}
-        <div className="bg-white rounded-xl shadow-sm p-6 h-fit sticky top-6">
-          <h3 className="text-lg font-semibold mb-4">Bill Summary</h3>
+        <div className="bg-white rounded-xl shadow-sm p-4 space-y-3">
+          <h3 className="font-semibold mb-2">Bill Summary</h3>
 
-          <div className="space-y-2">
-            <Row label="Items Total" value={`₹ ${itemsTotal}`} />
-            <Row label="Discount" value={`₹ ${order.discount}`} />
-          </div>
+          <Row
+            label="Subtotal"
+            value={`₹ ${Number(order.sub_total || order.subtotal || 0).toFixed(2)}`}
+          />
 
-          <div className="border-t mt-4 pt-4 flex justify-between items-center">
-            <span className="text-lg font-semibold">Total</span>
-            <span className="text-2xl font-bold text-indigo-600">
-              ₹ {order.total_amount}
+          {Number(order.product_discount ?? 0) > 0 && (
+            <Row
+              label="Product Discount"
+              value={`- ₹ ${Number(order.product_discount).toFixed(2)}`}
+            />
+          )}
+
+          {Number(order.billed_discount ?? 0) > 0 && (
+            <Row
+              label="Bill Discount"
+              value={`- ₹ ${Number(order.billed_discount).toFixed(2)}`}
+            />
+          )}
+
+          <Row
+            label="Tax (GST)"
+            value={`₹ ${Number(order.tax_total || 0).toFixed(2)}`}
+          />
+
+          <Row
+            label="Delivery Charge"
+            value={`₹ ${Number(order.delivery_charge || order.delivery_fee || 0).toFixed(2)}`}
+          />
+
+          <div className="border-t pt-3 mt-3 flex justify-between items-center">
+            <span className="text-base font-semibold">Grand Total</span>
+            <span className="text-xl font-bold text-indigo-600">
+              ₹ {Number(order.grand_total || 0).toFixed(2)}
             </span>
           </div>
         </div>

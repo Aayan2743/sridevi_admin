@@ -361,9 +361,9 @@ export default function Products() {
         variation: "/admin-dashboard/product/bulk-upload-variations",
         seo: "/admin-dashboard/product/bulk-upload-seo-meta",
         tax: "/admin-dashboard/product/bulk-upload-tax-affinity",
-        "store-product": "/admin-dashboard/offline-store/bulk-upload-products",
+        "store-product": "/admin-dashboard/product/bulk-store-products",
 
-        "store-variant": "/admin-dashboard/offline-store/bulk-upload-variants",
+        "store-variant": "/admin-dashboard/product/bulk-store-variations",
       };
 
       const endpoint = endpoints[bulkType];
@@ -513,13 +513,6 @@ export default function Products() {
                 className="h-12 rounded-2xl border border-indigo-200 bg-white px-5 text-sm font-semibold text-indigo-600"
               >
                 Bulk Upload
-              </button>
-
-              <button
-                onClick={() => setBulkStoreOpen(true)}
-                className="h-12 rounded-2xl border border-emerald-200 bg-white px-5 text-sm font-semibold text-emerald-600"
-              >
-                Store Bulk Upload
               </button>
 
               {/* 🔥 ADD */}

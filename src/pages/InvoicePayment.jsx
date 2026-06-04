@@ -64,7 +64,7 @@ export default function InvoicePayment() {
       })
       .catch((err) => {
         setError(
-          err.response?.data?.message || "Failed to load invoice details"
+          err.response?.data?.message || "Failed to load invoice details",
         );
       })
       .finally(() => setLoading(false));
@@ -121,7 +121,8 @@ export default function InvoicePayment() {
         } else {
           setPaymentResult({
             type: "initiated",
-            message: "Payment initiated successfully! You will receive the payment link on WhatsApp.",
+            message:
+              "Payment initiated successfully! You will receive the payment link on WhatsApp.",
           });
         }
       } else {
@@ -129,7 +130,7 @@ export default function InvoicePayment() {
       }
     } catch (err) {
       setPaymentError(
-        err.response?.data?.message || "Failed to initiate payment"
+        err.response?.data?.message || "Failed to initiate payment",
       );
     } finally {
       setPaymentLoading(false);
@@ -173,73 +174,71 @@ export default function InvoicePayment() {
   //   rzp.open();
   // };
 
-
   const openRazorpayCheckout = (data) => {
+    if (!window.Razorpay) {
+      alert("Razorpay SDK failed to load");
+      return;
+    }
 
-  if (!window.Razorpay) {
-    alert("Razorpay SDK failed to load");
-    return;
-  }
+    const options = {
+      key: data.merchant_key,
+      amount: Number(data.amount) * 100,
+      currency: "INR",
+      name: "Sri Devi Herbals",
+      description: `Invoice #${data.invoice_number || ""}`,
+      order_id: data.razorpay_order_id,
 
-  const options = {
-    key: data.merchant_key,
-    amount: Number(data.amount) * 100,
-    currency: "INR",
-    name: "Sri Devi Herbals",
-    description: `Invoice #${data.invoice_number || ""}`,
-    order_id: data.razorpay_order_id,
+      handler: async function (response) {
+        console.log(response);
 
-    handler: async function (response) {
-      console.log(response);
+        // Call backend to verify payment signature & mark sale as paid
+        try {
+          const verifyRes = await publicApi.post("/invoice/verify-payment", {
+            invoice_token: token,
+            razorpay_order_id: response.razorpay_order_id,
+            razorpay_payment_id: response.razorpay_payment_id,
+            razorpay_signature: response.razorpay_signature,
+          });
 
-      // Call backend to verify payment signature & mark sale as paid
-      try {
-        const verifyRes = await publicApi.post("/invoice/verify-payment", {
-          invoice_token: token,
-          razorpay_order_id: response.razorpay_order_id,
-          razorpay_payment_id: response.razorpay_payment_id,
-          razorpay_signature: response.razorpay_signature,
-        });
+          setPaymentResult({
+            type: "razorpay_success",
+            razorpay_payment_id: response.razorpay_payment_id,
+            razorpay_order_id: response.razorpay_order_id,
+            verified: true,
+          });
+        } catch (err) {
+          // Payment went through on Razorpay but verification failed
+          setPaymentResult({
+            type: "razorpay_success",
+            razorpay_payment_id: response.razorpay_payment_id,
+            razorpay_order_id: response.razorpay_order_id,
+            verified: false,
+          });
+          setPaymentError(
+            "Payment processed! Admin will verify manually. Contact support if not updated.",
+          );
+        }
+      },
 
-        setPaymentResult({
-          type: "razorpay_success",
-          razorpay_payment_id: response.razorpay_payment_id,
-          razorpay_order_id: response.razorpay_order_id,
-          verified: true,
-        });
-      } catch (err) {
-        // Payment went through on Razorpay but verification failed
-        setPaymentResult({
-          type: "razorpay_success",
-          razorpay_payment_id: response.razorpay_payment_id,
-          razorpay_order_id: response.razorpay_order_id,
-          verified: false,
-        });
-        setPaymentError(
-          "Payment processed! Admin will verify manually. Contact support if not updated."
-        );
-      }
-    },
+      prefill: {
+        name: invoice.customer_name,
+        contact: invoice.customer_phone,
+      },
 
-    prefill: {
-      name: invoice.customer_name,
-      contact: invoice.customer_phone,
-    },
+      theme: {
+        color: "#16a34a",
+      },
+    };
 
-    theme: {
-      color: "#16a34a",
-    },
+    const rzp = new window.Razorpay(options);
+
+    rzp.on("payment.failed", function (response) {
+      console.log(response.error);
+      alert("Payment Failed");
+    });
+
+    rzp.open();
   };
-
-  const rzp = new window.Razorpay(options);
-
-  rzp.on("payment.failed", function (response) {
-    console.log(response.error);
-    alert("Payment Failed");
-  });
-
-  rzp.open();
-};
   /* ── PayU auto-submit form ── */
   const submitPayuForm = (payuData) => {
     const form = document.createElement("form");
@@ -367,13 +366,28 @@ export default function InvoicePayment() {
                         {item.variation_name}
                       </p>
                     )}
+
                     <p className="text-sm text-gray-400">
                       Qty: {item.qty} × {formatPrice(item.price)}
                     </p>
+
+                    {Number(item.discount) > 0 && (
+                      <p className="text-sm text-green-600">
+                        Discount: {formatPrice(item.discount)}
+                      </p>
+                    )}
                   </div>
-                  <p className="font-semibold text-gray-800">
-                    {formatPrice(item.price * item.qty)}
-                  </p>
+                  <div className="text-right">
+                    <p className="font-semibold text-gray-800">
+                      {formatPrice(item.price)}
+                    </p>
+
+                    {Number(item.discount) > 0 && (
+                      <p className="text-xs text-green-600">
+                        Saved {formatPrice(item.discount)}
+                      </p>
+                    )}
+                  </div>
                 </div>
               ))
             ) : (

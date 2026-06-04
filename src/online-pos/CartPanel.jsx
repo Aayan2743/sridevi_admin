@@ -3,7 +3,6 @@ import api from "../api/axios";
 import { useAuth } from "../auth/AuthContext";
 import PaymentOptionsModal from "./components/PaymentOptionsModal";
 
-
 export default function CartPanel({ cart = [], setCart }) {
   const { user, can } = useAuth();
   /* (can unused now, kept for future extensibility) */
@@ -51,26 +50,31 @@ export default function CartPanel({ cart = [], setCart }) {
   const [deliveryPincode, setDeliveryPincode] = useState("");
   const [altPhone, setAltPhone] = useState("");
   const [otp, setOtp] = useState("");
-  const [otpDisplay, setOtpDisplay] = useState("");  // auto-displayed from backend
+  const [otpDisplay, setOtpDisplay] = useState(""); // auto-displayed from backend
   const [pendingId, setPendingId] = useState(null);
   const [otpSent, setOtpSent] = useState(false);
   const [otpVerified, setOtpVerified] = useState(false);
   const [otpLoading, setOtpLoading] = useState(false);
 
   /* ================= MANUAL CONFIRMATION (Already Paid Directly) ================= */
-  const [manualPaymentMethod, setManualPaymentMethod] = useState("cash_collected");
+  const [manualPaymentMethod, setManualPaymentMethod] =
+    useState("cash_collected");
 
   /* ================= DRAFT ORDERS ================= */
   const [showDraftOrders, setShowDraftOrders] = useState(false);
   const [draftOrders, setDraftOrders] = useState([]);
   const [draftLoading, setDraftLoading] = useState(false);
   const [draftSearch, setDraftSearch] = useState("");
-  const [draftDateFilter, setDraftDateFilter] = useState("");        // '' | 'today' | 'yesterday' | 'custom'
+  const [draftDateFilter, setDraftDateFilter] = useState(""); // '' | 'today' | 'yesterday' | 'custom'
   const [draftDateFrom, setDraftDateFrom] = useState("");
   const [draftDateTo, setDraftDateTo] = useState("");
   const [draftStatusFilter, setDraftStatusFilter] = useState("draft"); // 'draft' | 'converted' | 'all'
   const [draftPage, setDraftPage] = useState(1);
-  const [draftPagination, setDraftPagination] = useState({ current_page: 1, last_page: 1, total: 0 });
+  const [draftPagination, setDraftPagination] = useState({
+    current_page: 1,
+    last_page: 1,
+    total: 0,
+  });
   const [draftCancelLoading, setDraftCancelLoading] = useState(false);
   const [draftSendDetailsLoading, setDraftSendDetailsLoading] = useState(false);
   const [showAllDrafts, setShowAllDrafts] = useState(false); // true = show all telecallers' drafts; false = only mine
@@ -130,7 +134,7 @@ export default function CartPanel({ cart = [], setCart }) {
       const gstPercent = Number(item.tax?.gst_percent) || 0;
 
       if (item.tax?.gst_enabled && item.tax?.gst_type === "exclusive") {
-        return total + ((price * qty) * gstPercent) / 100;
+        return total + (price * qty * gstPercent) / 100;
       }
       return total;
     }, 0);
@@ -221,9 +225,7 @@ export default function CartPanel({ cart = [], setCart }) {
 
       payment_method: paymentMode,
       paid_amount:
-        paymentMode === "cash"
-          ? Number(givenAmount)
-          : Number(total.toFixed(2)),
+        paymentMode === "cash" ? Number(givenAmount) : Number(total.toFixed(2)),
 
       subtotal: subtotal,
       discount_total: discount,
@@ -235,12 +237,12 @@ export default function CartPanel({ cart = [], setCart }) {
       customer_phone: customer.phone,
       address_snapshot: null,
 
-      items: cart.map((item) => ({
-        product_id: item.product_id,
-        variant_id: item.variation_id,
-        qty: item.qty,
-        barcode_id: item.barcode_id ?? null,
-      })),
+          items: cart.map((item) => ({
+            product_id: item.product_id,
+            variant_id: item.variation_id,
+            qty: item.qty,
+            barcode_id: item.barcode_id ?? null,
+          })),
     };
 
     try {
@@ -406,9 +408,11 @@ export default function CartPanel({ cart = [], setCart }) {
       if (res.data.success) {
         setPendingId(res.data.pending_id);
         setOtpDisplay(res.data.otp || "");
-        setOtp("");            // clear old OTP input
+        setOtp(""); // clear old OTP input
         setOtpVerified(false); // reset verification status
-        alert("✅ OTP resent with updated order details to customer's WhatsApp!");
+        alert(
+          "✅ OTP resent with updated order details to customer's WhatsApp!",
+        );
       } else {
         alert(res.data.message || "Failed to resend OTP");
       }
@@ -447,9 +451,7 @@ export default function CartPanel({ cart = [], setCart }) {
       }
     } catch (err) {
       console.error("Verify OTP error:", err);
-      alert(
-        err.response?.data?.message || "OTP verification failed",
-      );
+      alert(err.response?.data?.message || "OTP verification failed");
     } finally {
       setOtpLoading(false);
     }
@@ -576,13 +578,23 @@ export default function CartPanel({ cart = [], setCart }) {
             variant_id: item.variation_id,
             qty: item.qty,
             barcode_id: item.barcode_id ?? null,
+            // Snapshot: freeze billing values at the time of sending
+            product_name: item.product_name,
+            variation_name: item.variation_name,
+            price: Number(item.price) || 0,
+            MRP: Number(item.mrp || item.MRP) || 0,
+            discount: Number(item.discount) || 0,
+            stock: Number(item.stock) || 1,
+            tax: item.tax || null,
           })),
         },
       );
 
       if (res.data.success) {
         const link = res.data.data.invoice_url;
-        alert(`✅ Order details link sent to ${customer.phone}\n\nLink: ${link}`);
+        alert(
+          `✅ Order details link sent to ${customer.phone}\n\nLink: ${link}`,
+        );
       } else {
         alert(res.data.message || "Failed to send order details link");
       }
@@ -608,37 +620,34 @@ export default function CartPanel({ cart = [], setCart }) {
     try {
       setLoading(true);
 
-      const res = await api.post(
-        "/admin-dashboard/pos/create-draft-from-otp",
-        {
-          pending_id: pendingId,
-          alt_phone: altPhone || null,
-          customer_id: selectedCustomer?.id || null,
-          customer_name: customer.name,
-          customer_phone: customer.phone,
-          delivery_fee: deliveryFee,
-          address_snapshot: {
-            address: buildAddressString(),
-            door_no: deliveryDoorNo,
-            street: deliveryStreet,
-            landmark: deliveryLandmark,
-            area: deliveryArea,
-            city: deliveryCity,
-            state: deliveryState,
-            pincode: deliveryPincode,
-          },
-          discount_total: discount,
-          tax_total: gst,
-          grand_total: total,
-          subtotal: subtotal,
-          items: cart.map((item) => ({
-            product_id: item.product_id,
-            variant_id: item.variation_id,
-            qty: item.qty,
-            barcode_id: item.barcode_id ?? null,
-          })),
+      const res = await api.post("/admin-dashboard/pos/create-draft-from-otp", {
+        pending_id: pendingId,
+        alt_phone: altPhone || null,
+        customer_id: selectedCustomer?.id || null,
+        customer_name: customer.name,
+        customer_phone: customer.phone,
+        delivery_fee: deliveryFee,
+        address_snapshot: {
+          address: buildAddressString(),
+          door_no: deliveryDoorNo,
+          street: deliveryStreet,
+          landmark: deliveryLandmark,
+          area: deliveryArea,
+          city: deliveryCity,
+          state: deliveryState,
+          pincode: deliveryPincode,
         },
-      );
+        discount_total: discount,
+        tax_total: gst,
+        grand_total: total,
+        subtotal: subtotal,
+        items: cart.map((item) => ({
+          product_id: item.product_id,
+          variant_id: item.variation_id,
+          qty: item.qty,
+          barcode_id: item.barcode_id ?? null,
+        })),
+      });
 
       if (res.data.success) {
         alert("✅ Order saved as draft. You can follow up later.");
@@ -671,9 +680,16 @@ export default function CartPanel({ cart = [], setCart }) {
       const data = res.data.data;
 
       // 1. Restore customer info
-      setCustomer({ name: data.customer_name || "", phone: data.customer_phone || "" });
+      setCustomer({
+        name: data.customer_name || "",
+        phone: data.customer_phone || "",
+      });
       if (data.customer_id) {
-        setSelectedCustomer({ id: data.customer_id, name: data.customer_name, phone: data.customer_phone });
+        setSelectedCustomer({
+          id: data.customer_id,
+          name: data.customer_name,
+          phone: data.customer_phone,
+        });
       }
       setAltPhone(data.alt_phone || "");
 
@@ -681,17 +697,17 @@ export default function CartPanel({ cart = [], setCart }) {
       if (Array.isArray(data.items)) {
         setCart(
           data.items.map((item) => ({
-            product_id:       item.product_id,
-            product_name:     item.product_name || "",
-            variation_id:     item.variation_id,
-            variation_name:   item.variation_name || "",
-            price:            Number(item.price) || 0,
-            MRP:              Number(item.MRP) || 0,
-            discount:         Number(item.discount) || 0,
-            stock:            Number(item.stock) || 1,
-            qty:              Number(item.qty) || 1,
-            tax:              item.tax || null,
-            barcode_id:       item.barcode_id || null,
+            product_id: item.product_id,
+            product_name: item.product_name || "",
+            variation_id: item.variation_id,
+            variation_name: item.variation_name || "",
+            price: Number(item.price) || 0,
+            MRP: Number(item.MRP) || 0,
+            discount: Number(item.discount) || 0,
+            stock: Number(item.stock) || 1,
+            qty: Number(item.qty) || 1,
+            tax: item.tax || null,
+            barcode_id: item.barcode_id || null,
           })),
         );
       }
@@ -725,7 +741,9 @@ export default function CartPanel({ cart = [], setCart }) {
       // 7. Close the draft modal
       setShowDraftOrders(false);
 
-      alert("✅ Draft loaded. You can now modify the order and send a new OTP.");
+      alert(
+        "✅ Draft loaded. You can now modify the order and send a new OTP.",
+      );
     } catch (err) {
       console.error("Load draft error:", err);
       alert(err.response?.data?.message || "Failed to load draft");
@@ -754,7 +772,9 @@ export default function CartPanel({ cart = [], setCart }) {
       }
       params.append("page", page);
       params.append("per_page", 15);
-      const res = await api.get(`/admin-dashboard/pos/draft-orders?${params.toString()}`);
+      const res = await api.get(
+        `/admin-dashboard/pos/draft-orders?${params.toString()}`,
+      );
       if (res.data.success) {
         setDraftOrders(res.data.data || []);
         setDraftPagination(
@@ -794,7 +814,6 @@ export default function CartPanel({ cart = [], setCart }) {
     }
   };
 
-
   /* ================= MANUAL CONFIRMATION: Create Order Directly (Already Paid) ================= */
   const handleManualConfirm = async () => {
     if (!customer.name) {
@@ -821,14 +840,17 @@ export default function CartPanel({ cart = [], setCart }) {
       bank_transfer: "Bank Transfer",
     };
 
-    if (!confirm(
-      `Create order with MANUAL CONFIRMATION?\n\n` +
-      `Payment: ${methodLabels[manualPaymentMethod] || manualPaymentMethod}\n` +
-      `Customer: ${customer.name}\n` +
-      `Total: ₹${total.toFixed(2)}\n` +
-      `Address: ${buildAddressString()}, ${deliveryCity}, ${deliveryState} - ${deliveryPincode}\n\n` +
-      `Press OK to confirm order creation.`
-    )) return;
+    if (
+      !confirm(
+        `Create order with MANUAL CONFIRMATION?\n\n` +
+          `Payment: ${methodLabels[manualPaymentMethod] || manualPaymentMethod}\n` +
+          `Customer: ${customer.name}\n` +
+          `Total: ₹${total.toFixed(2)}\n` +
+          `Address: ${buildAddressString()}, ${deliveryCity}, ${deliveryState} - ${deliveryPincode}\n\n` +
+          `Press OK to confirm order creation.`,
+      )
+    )
+      return;
 
     const payload = {
       customer_id: selectedCustomer?.id || null,
@@ -887,49 +909,37 @@ export default function CartPanel({ cart = [], setCart }) {
   };
 
   useEffect(() => {
+    if (!initiatedPayment?.sale_id) return;
 
-  if (!initiatedPayment?.sale_id) return;
-
-  const interval = setInterval(async () => {
-
-    try {
-
-      const res = await api.post(
-        "/admin-dashboard/pos/check-payment-status",
-        {
-          sale_id: initiatedPayment.sale_id,
-        }
-      );
-
-      if (
-        res.data.success &&
-        res.data.data?.status === "complete"
-      ) {
-
-        clearInterval(interval);
-
-        const order = res.data.data;
-
-        alert(
-          `Payment Confirmed — ${order.invoice_number}`
+    const interval = setInterval(async () => {
+      try {
+        const res = await api.post(
+          "/admin-dashboard/pos/check-payment-status",
+          {
+            sale_id: initiatedPayment.sale_id,
+          },
         );
 
-        printReceipt(order);
+        if (res.data.success && res.data.data?.status === "complete") {
+          clearInterval(interval);
 
-        setInitiatedPayment(null);
+          const order = res.data.data;
 
-        resetCartPanel();
+          alert(`Payment Confirmed — ${order.invoice_number}`);
+
+          printReceipt(order);
+
+          setInitiatedPayment(null);
+
+          resetCartPanel();
+        }
+      } catch (err) {
+        console.log(err);
       }
+    }, 5000);
 
-    } catch (err) {
-      console.log(err);
-    }
-
-  }, 5000);
-
-  return () => clearInterval(interval);
-
-}, [initiatedPayment]);
+    return () => clearInterval(interval);
+  }, [initiatedPayment]);
 
   /* ─────────────────────────────────────────────
      RENDER
@@ -941,7 +951,8 @@ export default function CartPanel({ cart = [], setCart }) {
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-semibold text-slate-900">Billing</h3>
           <span className="rounded-full bg-indigo-100 px-3 py-1 text-xs font-semibold text-indigo-700">
-            Items: {cart.reduce((sum, item) => sum + (Number(item.qty) || 0), 0)}
+            Items:{" "}
+            {cart.reduce((sum, item) => sum + (Number(item.qty) || 0), 0)}
           </span>
         </div>
       </div>
@@ -997,7 +1008,9 @@ export default function CartPanel({ cart = [], setCart }) {
           <input
             value={customer.name}
             disabled={!!selectedCustomer}
-            onChange={(e) => setCustomer((p) => ({ ...p, name: e.target.value }))}
+            onChange={(e) =>
+              setCustomer((p) => ({ ...p, name: e.target.value }))
+            }
             placeholder="Name"
             className={`h-9 w-full rounded-lg border px-2 text-xs ${
               selectedCustomer ? "cursor-not-allowed bg-gray-100" : ""
@@ -1030,8 +1043,18 @@ export default function CartPanel({ cart = [], setCart }) {
             disabled={draftLoading}
             className="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-3.5 py-1.5 text-[11px] font-semibold text-amber-700 shadow-sm transition hover:bg-amber-100 disabled:opacity-50"
           >
-            <svg className="h-3.5 w-3.5 mr-1" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            <svg
+              className="h-3.5 w-3.5 mr-1"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={2}
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+              />
             </svg>
             Draft Orders
           </button>
@@ -1057,7 +1080,10 @@ export default function CartPanel({ cart = [], setCart }) {
             <tbody>
               {cart.length === 0 ? (
                 <tr>
-                  <td colSpan="8" className="px-3 py-8 text-center text-slate-500">
+                  <td
+                    colSpan="8"
+                    className="px-3 py-8 text-center text-slate-500"
+                  >
                     No items added yet.
                   </td>
                 </tr>
@@ -1075,9 +1101,14 @@ export default function CartPanel({ cart = [], setCart }) {
                   const lineTotal = finalPrice * (Number(item.qty) || 0);
 
                   return (
-                    <tr key={i} className="border-t border-slate-100 align-middle">
+                    <tr
+                      key={i}
+                      className="border-t border-slate-100 align-middle"
+                    >
                       <td className="px-2 py-1">
-                        <p className="truncate font-medium text-slate-800">{item.product_name}</p>
+                        <p className="truncate font-medium text-slate-800">
+                          {item.product_name}
+                        </p>
                         <p className="truncate text-[10px] text-slate-500">
                           {item.variation_name}
                         </p>
@@ -1102,7 +1133,9 @@ export default function CartPanel({ cart = [], setCart }) {
                           >
                             -
                           </button>
-                          <span className="w-4 text-center text-[10px] font-semibold leading-none">{item.qty}</span>
+                          <span className="w-4 text-center text-[10px] font-semibold leading-none">
+                            {item.qty}
+                          </span>
                           <button
                             onClick={() => increaseQty(i)}
                             className="h-5 w-5 rounded border border-slate-300 text-slate-700 transition hover:bg-slate-100"
@@ -1117,7 +1150,9 @@ export default function CartPanel({ cart = [], setCart }) {
                       <td className="px-2 py-1 text-center">
                         <button
                           onClick={() =>
-                            setCart((prev) => prev.filter((_, idx) => idx !== i))
+                            setCart((prev) =>
+                              prev.filter((_, idx) => idx !== i),
+                            )
                           }
                           className="rounded bg-rose-50 px-2 py-1 text-[10px] font-semibold text-rose-600 transition hover:bg-rose-100"
                         >
@@ -1221,9 +1256,23 @@ export default function CartPanel({ cart = [], setCart }) {
         {/* ================= TELE-CALLER FLOW: ADDRESS & OTP SECTION ================= */}
         <div className="space-y-3 mb-3 border rounded-lg p-3 bg-blue-50/60">
           <h4 className="text-xs font-semibold text-blue-800 flex items-center gap-1">
-            <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+            <svg
+              className="h-4 w-4"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={2}
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+              />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+              />
             </svg>
             Delivery Address & OTP Confirmation
           </h4>
@@ -1283,7 +1332,9 @@ export default function CartPanel({ cart = [], setCart }) {
           {/* Alt Phone */}
           <input
             value={altPhone}
-            onChange={(e) => setAltPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
+            onChange={(e) =>
+              setAltPhone(e.target.value.replace(/\D/g, "").slice(0, 10))
+            }
             placeholder="Alt phone no (optional, for payment link)"
             className="w-full border rounded px-3 py-2 text-xs"
           />
@@ -1292,15 +1343,26 @@ export default function CartPanel({ cart = [], setCart }) {
           <div className="border-t border-blue-200 pt-3 mt-2">
             <details className="group">
               <summary className="flex cursor-pointer items-center gap-2 text-xs font-semibold text-emerald-800 hover:text-emerald-600">
-                <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                <svg
+                  className="h-4 w-4"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
                 </svg>
                 ✅ Customer Already Paid (Manual Confirm)
               </summary>
               <div className="mt-2 space-y-2">
                 <p className="text-[10px] text-gray-500">
-                  Use this when the customer has paid directly via link, PhonePe, cash, or bank transfer.
-                  No OTP or payment link will be sent — order is created immediately.
+                  Use this when the customer has paid directly via link,
+                  PhonePe, cash, or bank transfer. No OTP or payment link will
+                  be sent — order is created immediately.
                 </p>
                 <select
                   value={manualPaymentMethod}
@@ -1324,8 +1386,18 @@ export default function CartPanel({ cart = [], setCart }) {
                     </>
                   ) : (
                     <>
-                      <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      <svg
+                        className="h-4 w-4"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth={2}
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
                       </svg>
                       Create Order (Already Paid — ₹{total.toFixed(2)})
                     </>
@@ -1349,8 +1421,18 @@ export default function CartPanel({ cart = [], setCart }) {
                 </>
               ) : (
                 <>
-                  <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  <svg
+                    className="h-4 w-4"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                    />
                   </svg>
                   Send OTP to Customer
                 </>
@@ -1359,17 +1441,25 @@ export default function CartPanel({ cart = [], setCart }) {
           ) : !otpVerified ? (
             /* OTP sent — show auto-displayed OTP + verify input */
             <div className="space-y-2">
-              <p className="text-xs text-blue-700">✅ OTP sent to {customer.phone}</p>
+              <p className="text-xs text-blue-700">
+                ✅ OTP sent to {customer.phone}
+              </p>
               {otpDisplay && (
                 <div className="rounded-lg border border-amber-200 bg-amber-50 p-2 text-center">
-                  <p className="text-[10px] text-amber-700">OTP received (tell customer to confirm):</p>
-                  <p className="text-xl font-bold tracking-[8px] text-amber-900 font-mono">{otpDisplay}</p>
+                  <p className="text-[10px] text-amber-700">
+                    OTP received (tell customer to confirm):
+                  </p>
+                  <p className="text-xl font-bold tracking-[8px] text-amber-900 font-mono">
+                    {otpDisplay}
+                  </p>
                 </div>
               )}
               <div className="flex items-center gap-2">
                 <input
                   value={otp}
-                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                  onChange={(e) =>
+                    setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))
+                  }
                   placeholder="Enter 6-digit OTP"
                   maxLength={6}
                   className="flex-1 border rounded px-3 py-2 text-xs text-center tracking-[8px] font-mono"
@@ -1395,8 +1485,18 @@ export default function CartPanel({ cart = [], setCart }) {
                   </>
                 ) : (
                   <>
-                    <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    <svg
+                      className="h-4 w-4"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                      />
                     </svg>
                     Resend OTP with Updated Details
                   </>
@@ -1407,13 +1507,26 @@ export default function CartPanel({ cart = [], setCart }) {
             /* OTP Verified — two action buttons */
             <div className="space-y-2">
               <div className="flex items-center gap-2 text-green-800">
-                <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                <svg
+                  className="h-5 w-5"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
                 </svg>
-                <p className="text-xs font-semibold">✅ OTP Verified — Customer Confirmed</p>
+                <p className="text-xs font-semibold">
+                  ✅ OTP Verified — Customer Confirmed
+                </p>
               </div>
               <p className="text-[11px] text-green-700">
-                Address: {buildAddressString()}, {deliveryCity}, {deliveryState} - {deliveryPincode}
+                Address: {buildAddressString()}, {deliveryCity}, {deliveryState}{" "}
+                - {deliveryPincode}
               </p>
               <div className="flex flex-col gap-2">
                 <div className="flex gap-2">
@@ -1459,8 +1572,18 @@ export default function CartPanel({ cart = [], setCart }) {
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
                   ) : (
                     <>
-                      <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                      <svg
+                        className="h-4 w-4"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth={2}
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                        />
                       </svg>
                       Send to Order Details
                     </>
@@ -1560,13 +1683,13 @@ export default function CartPanel({ cart = [], setCart }) {
             );
 
             if (res.data.success) {
-            const data = res.data.data;
+              const data = res.data.data;
 
-            if (gateway === "phonepe" && data.payment_url) {
-              /* Open PhonePe payment page in a new tab so POS state is preserved
+              if (gateway === "phonepe" && data.payment_url) {
+                /* Open PhonePe payment page in a new tab so POS state is preserved
                  and the polling mechanism / UPI Collect flow can still operate. */
-              window.open(data.payment_url, "_blank", "noopener,noreferrer");
-            }
+                window.open(data.payment_url, "_blank", "noopener,noreferrer");
+              }
 
               // setInitiatedPayment({
               //   sale_id: data.sale_id,
@@ -1581,28 +1704,25 @@ export default function CartPanel({ cart = [], setCart }) {
               // });
 
               setInitiatedPayment({
+                sale_id: data.sale_id,
 
-          sale_id: data.sale_id,
+                invoice_number: data.invoice_number,
 
-          invoice_number: data.invoice_number,
+                gateway: gateway,
 
-          gateway: gateway,
+                app_key: appKey,
 
-          app_key: appKey,
+                payment_link: data.payment_link || null,
 
-          payment_link: data.payment_link || null,
+                payment_url: data.payment_url || null,
 
-          payment_url: data.payment_url || null,
+                payu_action_url: data.payu_action_url || null,
 
-          payu_action_url: data.payu_action_url || null,
+                payu_form_data: data.payu_form_data || null,
 
-          payu_form_data: data.payu_form_data || null,
-
-          gateway_response:
-            data.response ||
-            data.gateway_response ||
-            null,
-        });
+                gateway_response:
+                  data.response || data.gateway_response || null,
+              });
 
               setShowPaymentOptions(false);
             } else {
@@ -1627,13 +1747,28 @@ export default function CartPanel({ cart = [], setCart }) {
           <div className="rounded-2xl border border-indigo-200 bg-indigo-50/60 p-4">
             <div className="flex items-center gap-2 mb-2">
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-500 text-white">
-                <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                <svg
+                  className="h-4 w-4"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M13 10V3L4 14h7v7l9-11h-7z"
+                  />
                 </svg>
               </div>
               <div>
                 <p className="text-xs font-semibold text-indigo-800">
-                  Payment Initiated — {initiatedPayment.gateway === "razorpay" ? "Razorpay" : initiatedPayment.gateway === "phonepe" ? "PhonePe / UPI" : "PayU"}
+                  Payment Initiated —{" "}
+                  {initiatedPayment.gateway === "razorpay"
+                    ? "Razorpay"
+                    : initiatedPayment.gateway === "phonepe"
+                      ? "PhonePe / UPI"
+                      : "PayU"}
                 </p>
                 <p className="text-[11px] text-indigo-600">
                   Invoice: {initiatedPayment.invoice_number}
@@ -1650,14 +1785,32 @@ export default function CartPanel({ cart = [], setCart }) {
                 {/* Customer VPA Input + Send Collect Request */}
                 <div className="rounded-xl border border-purple-200 bg-purple-50/40 p-3">
                   <div className="flex items-center gap-2 mb-2">
-                    <svg className="h-5 w-5 text-purple-600" viewBox="0 0 24 24" fill="none">
-                      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
-                      <path d="M12 6v6l4 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                    <svg
+                      className="h-5 w-5 text-purple-600"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                    >
+                      <circle
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                      />
+                      <path
+                        d="M12 6v6l4 2"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                      />
                     </svg>
-                    <p className="text-xs font-semibold text-purple-800">UPI Collect Request</p>
+                    <p className="text-xs font-semibold text-purple-800">
+                      UPI Collect Request
+                    </p>
                   </div>
                   <p className="text-[11px] text-purple-600 mb-3">
-                    Enter the customer's UPI ID to send a payment request. The customer approves in their UPI app.
+                    Enter the customer's UPI ID to send a payment request. The
+                    customer approves in their UPI app.
                   </p>
 
                   <div className="flex items-center gap-2">
@@ -1666,7 +1819,10 @@ export default function CartPanel({ cart = [], setCart }) {
                       value={customerVpa}
                       onChange={(e) => setCustomerVpa(e.target.value.trim())}
                       placeholder="e.g. customer@okaxis"
-                      disabled={upiCollectStatus === "sending" || upiCollectStatus === "pending"}
+                      disabled={
+                        upiCollectStatus === "sending" ||
+                        upiCollectStatus === "pending"
+                      }
                       className="flex-1 rounded-lg border border-purple-300 bg-white px-3 py-2 text-xs text-slate-700 placeholder:text-slate-400 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-100 disabled:opacity-50"
                     />
                     <button
@@ -1694,12 +1850,19 @@ export default function CartPanel({ cart = [], setCart }) {
                           );
 
                           if (res.data.success) {
-                            setUpiCollectSaleId(res.data.data?.upi_collect_id || res.data.data?.id);
+                            setUpiCollectSaleId(
+                              res.data.data?.upi_collect_id ||
+                                res.data.data?.id,
+                            );
                             setUpiCollectStatus("pending");
-                            alert("Payment request sent! Customer will receive a notification in their UPI app.");
+                            alert(
+                              "Payment request sent! Customer will receive a notification in their UPI app.",
+                            );
                           } else {
                             setUpiCollectStatus("failed");
-                            alert(res.data.message || "UPI collect request failed");
+                            alert(
+                              res.data.message || "UPI collect request failed",
+                            );
                           }
                         } catch (err) {
                           setUpiCollectStatus("failed");
@@ -1756,22 +1919,32 @@ export default function CartPanel({ cart = [], setCart }) {
                               },
                             );
 
-                            if (res.data.success && res.data.data?.status === "complete") {
+                            if (
+                              res.data.success &&
+                              res.data.data?.status === "complete"
+                            ) {
                               setUpiCollectStatus("approved");
                               const order = res.data.data;
-                              alert(`Payment Confirmed — ${order.invoice_number}`);
+                              alert(
+                                `Payment Confirmed — ${order.invoice_number}`,
+                              );
                               printReceipt(order);
                               setInitiatedPayment(null);
                               resetCartPanel();
                             } else if (res.data.data?.status === "failed") {
                               setUpiCollectStatus("failed");
-                              alert("Payment was declined by the customer. Try again.");
+                              alert(
+                                "Payment was declined by the customer. Try again.",
+                              );
                             } else {
-                              alert("Payment not yet approved. Waiting for customer action.");
+                              alert(
+                                "Payment not yet approved. Waiting for customer action.",
+                              );
                             }
                           } catch (err) {
                             alert(
-                              err.response?.data?.message || "Failed to check payment status",
+                              err.response?.data?.message ||
+                                "Failed to check payment status",
                             );
                           } finally {
                             setLoading(false);
@@ -1796,25 +1969,44 @@ export default function CartPanel({ cart = [], setCart }) {
                   {/* ── Status: Approved ── */}
                   {upiCollectStatus === "approved" && (
                     <div className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-center">
-                      <svg className="h-6 w-6 mx-auto mb-1 text-emerald-500" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      <svg
+                        className="h-6 w-6 mx-auto mb-1 text-emerald-500"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth={2}
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
                       </svg>
-                      <p className="text-xs font-semibold text-emerald-700">Payment Approved!</p>
+                      <p className="text-xs font-semibold text-emerald-700">
+                        Payment Approved!
+                      </p>
                     </div>
                   )}
 
                   {/* ── Status: Failed ── */}
                   {upiCollectStatus === "failed" && (
                     <div className="mt-3 rounded-lg border border-rose-200 bg-rose-50 p-3 text-center">
-                      <p className="text-xs font-semibold text-rose-700">Payment Failed / Declined</p>
-                      <p className="text-[11px] text-rose-600">Try again with the correct VPA.</p>
+                      <p className="text-xs font-semibold text-rose-700">
+                        Payment Failed / Declined
+                      </p>
+                      <p className="text-[11px] text-rose-600">
+                        Try again with the correct VPA.
+                      </p>
                     </div>
                   )}
                 </div>
 
                 {/* QR Code fallback (use payment link / URL from initiatedPayment) */}
                 {(() => {
-                  const qrData = initiatedPayment.payment_link || initiatedPayment.payment_url || "";
+                  const qrData =
+                    initiatedPayment.payment_link ||
+                    initiatedPayment.payment_url ||
+                    "";
                   return qrData ? (
                     <div className="rounded-xl border border-indigo-200 bg-white p-3 text-center">
                       <p className="text-[11px] font-semibold text-slate-500 mb-2">
@@ -1842,93 +2034,118 @@ export default function CartPanel({ cart = [], setCart }) {
             )}
 
             {/* Razorpay: QR Code + Payment link */}
-            {initiatedPayment.gateway === "razorpay" && initiatedPayment.payment_link && (
-              <div className="mt-3 space-y-3">
-                {/* QR Code */}
-                <div className="rounded-xl border border-indigo-200 bg-white p-3 text-center">
-                  <p className="text-[11px] font-semibold text-slate-500 mb-2">
-                    Scan QR to Pay ₹ {total.toFixed(2)}
-                  </p>
-                  <div className="inline-block rounded-xl border border-slate-200 bg-white p-2 shadow-sm">
-                    <img
-                      src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(initiatedPayment.payment_link)}`}
-                      alt="Payment QR Code"
-                      className="h-[180px] w-[180px]"
-                      onError={(e) => {
-                        e.target.style.display = "none";
-                        e.target.parentElement.innerHTML =
-                          '<p class="text-xs text-slate-400 p-4">QR code unavailable</p>';
-                      }}
-                    />
+            {initiatedPayment.gateway === "razorpay" &&
+              initiatedPayment.payment_link && (
+                <div className="mt-3 space-y-3">
+                  {/* QR Code */}
+                  <div className="rounded-xl border border-indigo-200 bg-white p-3 text-center">
+                    <p className="text-[11px] font-semibold text-slate-500 mb-2">
+                      Scan QR to Pay ₹ {total.toFixed(2)}
+                    </p>
+                    <div className="inline-block rounded-xl border border-slate-200 bg-white p-2 shadow-sm">
+                      <img
+                        src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(initiatedPayment.payment_link)}`}
+                        alt="Payment QR Code"
+                        className="h-[180px] w-[180px]"
+                        onError={(e) => {
+                          e.target.style.display = "none";
+                          e.target.parentElement.innerHTML =
+                            '<p class="text-xs text-slate-400 p-4">QR code unavailable</p>';
+                        }}
+                      />
+                    </div>
+                    <p className="mt-2 text-[11px] text-slate-400">
+                      Scan with any UPI app to pay instantly
+                    </p>
                   </div>
-                  <p className="mt-2 text-[11px] text-slate-400">
-                    Scan with any UPI app to pay instantly
-                  </p>
-                </div>
-                {/* Payment Link */}
-                <div className="rounded-xl border border-indigo-200 bg-white p-3">
-                  <p className="text-[11px] font-medium text-slate-500 mb-1">Payment Link</p>
-                  <div className="flex items-center gap-2">
-                    <input
-                      readOnly
-                      value={initiatedPayment.payment_link}
-                      className="flex-1 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700"
-                    />
-                    <button
-                      onClick={() => {
-                        navigator.clipboard.writeText(initiatedPayment.payment_link);
-                        alert("Payment link copied!");
-                      }}
-                      className="rounded-lg bg-indigo-500 px-3 py-2 text-xs font-semibold text-white hover:bg-indigo-600"
-                    >
-                      Copy
-                    </button>
-                    <button
-                      onClick={() => window.open(initiatedPayment.payment_link, "_blank")}
-                      className="rounded-lg border border-indigo-300 bg-white px-3 py-2 text-xs font-semibold text-indigo-600 hover:bg-indigo-50"
-                    >
-                      Open
-                    </button>
+                  {/* Payment Link */}
+                  <div className="rounded-xl border border-indigo-200 bg-white p-3">
+                    <p className="text-[11px] font-medium text-slate-500 mb-1">
+                      Payment Link
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <input
+                        readOnly
+                        value={initiatedPayment.payment_link}
+                        className="flex-1 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700"
+                      />
+                      <button
+                        onClick={() => {
+                          navigator.clipboard.writeText(
+                            initiatedPayment.payment_link,
+                          );
+                          alert("Payment link copied!");
+                        }}
+                        className="rounded-lg bg-indigo-500 px-3 py-2 text-xs font-semibold text-white hover:bg-indigo-600"
+                      >
+                        Copy
+                      </button>
+                      <button
+                        onClick={() =>
+                          window.open(initiatedPayment.payment_link, "_blank")
+                        }
+                        className="rounded-lg border border-indigo-300 bg-white px-3 py-2 text-xs font-semibold text-indigo-600 hover:bg-indigo-50"
+                      >
+                        Open
+                      </button>
+                    </div>
+                    <p className="mt-2 text-[11px] text-slate-400">
+                      Share this link with the customer for payment
+                    </p>
                   </div>
-                  <p className="mt-2 text-[11px] text-slate-400">
-                    Share this link with the customer for payment
-                  </p>
                 </div>
-              </div>
-            )}
+              )}
 
             {/* PayU: Show form */}
-            {initiatedPayment.gateway === "payu" && initiatedPayment.payu_action_url && (
-              <div className="mt-3 rounded-xl border border-indigo-200 bg-white p-3">
-                <p className="text-[11px] font-medium text-slate-500 mb-1">PayU Payment</p>
-                <form
-                  id="payu-form"
-                  action={initiatedPayment.payu_action_url}
-                  method="POST"
-                  target="_blank"
-                >
-                  {initiatedPayment.payu_form_data &&
-                    Object.entries(initiatedPayment.payu_form_data).map(([key, value]) => (
-                      <input key={key} type="hidden" name={key} value={value} />
-                    ))}
-                </form>
-                <button
-                  onClick={() => document.getElementById("payu-form")?.submit()}
-                  className="w-full rounded-lg bg-orange-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-orange-600 transition shadow-md"
-                >
-                  Proceed to PayU →
-                </button>
-                <p className="mt-2 text-[11px] text-slate-400">
-                  Submits payment form to PayU gateway
-                </p>
-              </div>
-            )}
+            {initiatedPayment.gateway === "payu" &&
+              initiatedPayment.payu_action_url && (
+                <div className="mt-3 rounded-xl border border-indigo-200 bg-white p-3">
+                  <p className="text-[11px] font-medium text-slate-500 mb-1">
+                    PayU Payment
+                  </p>
+                  <form
+                    id="payu-form"
+                    action={initiatedPayment.payu_action_url}
+                    method="POST"
+                    target="_blank"
+                  >
+                    {initiatedPayment.payu_form_data &&
+                      Object.entries(initiatedPayment.payu_form_data).map(
+                        ([key, value]) => (
+                          <input
+                            key={key}
+                            type="hidden"
+                            name={key}
+                            value={value}
+                          />
+                        ),
+                      )}
+                  </form>
+                  <button
+                    onClick={() =>
+                      document.getElementById("payu-form")?.submit()
+                    }
+                    className="w-full rounded-lg bg-orange-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-orange-600 transition shadow-md"
+                  >
+                    Proceed to PayU →
+                  </button>
+                  <p className="mt-2 text-[11px] text-slate-400">
+                    Submits payment form to PayU gateway
+                  </p>
+                </div>
+              )}
           </div>
 
           {/* Payment cancelled/expired status indicator */}
-          {initiatedPayment.status === "cancelled" || initiatedPayment.status === "expired" ? (
+          {initiatedPayment.status === "cancelled" ||
+          initiatedPayment.status === "expired" ? (
             <div className="mt-2 rounded-xl border border-red-200 bg-red-50 p-3 text-center">
-              <p className="text-sm font-bold text-red-700">⚠️ Payment Link {initiatedPayment.status === "cancelled" ? "Cancelled" : "Expired"}</p>
+              <p className="text-sm font-bold text-red-700">
+                ⚠️ Payment Link{" "}
+                {initiatedPayment.status === "cancelled"
+                  ? "Cancelled"
+                  : "Expired"}
+              </p>
               <p className="text-xs text-red-600">
                 Please send a new payment link to the customer.
               </p>
@@ -1944,11 +2161,17 @@ export default function CartPanel({ cart = [], setCart }) {
 
                   // ── FLOW 1: initiatePayment (Sale exists, status via check-payment-status) ──
                   if (initiatedPayment.sale_id) {
-                    const res = await api.post("/admin-dashboard/pos/check-payment-status", {
-                      sale_id: initiatedPayment.sale_id,
-                    });
+                    const res = await api.post(
+                      "/admin-dashboard/pos/check-payment-status",
+                      {
+                        sale_id: initiatedPayment.sale_id,
+                      },
+                    );
 
-                    if (res.data.success && res.data.data?.status === "complete") {
+                    if (
+                      res.data.success &&
+                      res.data.data?.status === "complete"
+                    ) {
                       // Backend already called markSaleAsPaid() via checkRazorpayStatus()
                       const order = res.data.data;
                       alert(`Payment Confirmed — ${order.invoice_number}`);
@@ -1963,16 +2186,28 @@ export default function CartPanel({ cart = [], setCart }) {
 
                   // ── FLOW 2: send-payment-link-only (no Sale yet; PaymentLink id) ──
                   if (initiatedPayment.payment_link_id) {
-                    const res = await api.post("/admin-dashboard/pos/check-payment-link-status", {
-                      payment_link_id: initiatedPayment.payment_link_id,
-                    });
-
-                    if (res.data.success && res.data.data?.status === "complete") {
-                      // Step 2: Auto-create order now that payment is confirmed
-                      setInitiatedPayment((prev) => ({ ...prev, status: "complete" }));
-                      const orderRes = await api.post("/admin-dashboard/pos/create-order-after-payment", {
+                    const res = await api.post(
+                      "/admin-dashboard/pos/check-payment-link-status",
+                      {
                         payment_link_id: initiatedPayment.payment_link_id,
-                      });
+                      },
+                    );
+
+                    if (
+                      res.data.success &&
+                      res.data.data?.status === "complete"
+                    ) {
+                      // Step 2: Auto-create order now that payment is confirmed
+                      setInitiatedPayment((prev) => ({
+                        ...prev,
+                        status: "complete",
+                      }));
+                      const orderRes = await api.post(
+                        "/admin-dashboard/pos/create-order-after-payment",
+                        {
+                          payment_link_id: initiatedPayment.payment_link_id,
+                        },
+                      );
                       if (orderRes.data.success) {
                         const order = orderRes.data.data;
                         alert(`✅ Order Confirmed — ${order.invoice_number}`);
@@ -1980,7 +2215,10 @@ export default function CartPanel({ cart = [], setCart }) {
                         setInitiatedPayment(null);
                         resetCartPanel();
                       } else {
-                        alert(orderRes.data.message || "Payment confirmed but failed to create order");
+                        alert(
+                          orderRes.data.message ||
+                            "Payment confirmed but failed to create order",
+                        );
                       }
                     } else {
                       alert(res.data.message || "Payment not completed yet");
@@ -1996,10 +2234,13 @@ export default function CartPanel({ cart = [], setCart }) {
                   }
 
                   // Fallback: no recognised flow
-                  alert("Cannot check payment: missing sale_id or payment_link_id");
-
+                  alert(
+                    "Cannot check payment: missing sale_id or payment_link_id",
+                  );
                 } catch (err) {
-                  alert(err.response?.data?.message || "Failed to check payment");
+                  alert(
+                    err.response?.data?.message || "Failed to check payment",
+                  );
                 } finally {
                   setLoading(false);
                 }
@@ -2025,7 +2266,9 @@ export default function CartPanel({ cart = [], setCart }) {
       {showAddCustomerPopup && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded-xl w-80 space-y-4">
-            <h3 className="text-lg font-semibold text-center">Customer Not Found</h3>
+            <h3 className="text-lg font-semibold text-center">
+              Customer Not Found
+            </h3>
 
             <p className="text-sm text-gray-600 text-center">
               Add this customer with phone <br />
@@ -2122,9 +2365,12 @@ export default function CartPanel({ cart = [], setCart }) {
             {/* HEADER */}
             <div className="mb-4 flex items-center justify-between border-b border-slate-100 pb-3">
               <div>
-                <h3 className="text-xl font-semibold text-slate-900">Purchase History</h3>
+                <h3 className="text-xl font-semibold text-slate-900">
+                  Purchase History
+                </h3>
                 <p className="text-xs text-slate-500">
-                  {orderHistory.length} previous order{orderHistory.length === 1 ? "" : "s"}
+                  {orderHistory.length} previous order
+                  {orderHistory.length === 1 ? "" : "s"}
                 </p>
               </div>
               <button
@@ -2149,7 +2395,9 @@ export default function CartPanel({ cart = [], setCart }) {
                   </div>
                   <div className="text-right">
                     <p className="text-[11px] text-slate-500">Grand Total</p>
-                    <p className="text-base font-semibold text-emerald-700">₹ {order.grand_total}</p>
+                    <p className="text-base font-semibold text-emerald-700">
+                      ₹ {order.grand_total}
+                    </p>
                   </div>
                 </div>
 
@@ -2166,10 +2414,16 @@ export default function CartPanel({ cart = [], setCart }) {
                       {order.items.map((item) => (
                         <tr key={item.id} className="border-t border-slate-100">
                           <td className="px-3 py-2">
-                            <p className="font-medium text-slate-800">{item.product_name}</p>
+                            <p className="font-medium text-slate-800">
+                              {item.product_name}
+                            </p>
                           </td>
-                          <td className="px-3 py-2 text-center text-slate-600">{item.qty}</td>
-                          <td className="px-3 py-2 text-right font-semibold text-slate-800">₹ {item.total}</td>
+                          <td className="px-3 py-2 text-center text-slate-600">
+                            {item.qty}
+                          </td>
+                          <td className="px-3 py-2 text-right font-semibold text-slate-800">
+                            ₹ {item.total}
+                          </td>
                         </tr>
                       ))}
                     </tbody>
@@ -2180,8 +2434,12 @@ export default function CartPanel({ cart = [], setCart }) {
 
             {orderHistory.length === 0 && (
               <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 py-12 text-center">
-                <p className="text-sm font-medium text-slate-700">No purchase history found</p>
-                <p className="mt-1 text-xs text-slate-500">Completed orders will appear here.</p>
+                <p className="text-sm font-medium text-slate-700">
+                  No purchase history found
+                </p>
+                <p className="mt-1 text-xs text-slate-500">
+                  Completed orders will appear here.
+                </p>
               </div>
             )}
           </div>
@@ -2195,7 +2453,9 @@ export default function CartPanel({ cart = [], setCart }) {
             {/* ── HEADER ── */}
             <div className="mb-4 flex items-center justify-between border-b border-slate-100 pb-3">
               <div>
-                <h3 className="text-xl font-semibold text-slate-900">Draft Orders</h3>
+                <h3 className="text-xl font-semibold text-slate-900">
+                  Draft Orders
+                </h3>
                 <p className="text-xs text-slate-500">
                   {draftPagination.total} draft order
                   {draftPagination.total === 1 ? "" : "s"} found
@@ -2427,9 +2687,11 @@ export default function CartPanel({ cart = [], setCart }) {
                         disabled={draftSendDetailsLoading}
                         className="rounded-lg bg-indigo-600 px-4 py-2 text-xs font-semibold text-white hover:bg-indigo-700 transition disabled:opacity-40"
                       >
-                        {draftSendDetailsLoading ? "Sending..." : "Send Details Again"}
+                        {draftSendDetailsLoading
+                          ? "Sending..."
+                          : "Send Details Again"}
                       </button>
-                      <button
+                      {/* <button
                         onClick={async () => {
                           if (
                             !confirm(
@@ -2467,7 +2729,7 @@ export default function CartPanel({ cart = [], setCart }) {
                         className="rounded-lg bg-green-600 px-4 py-2 text-xs font-semibold text-white hover:bg-green-700 transition disabled:opacity-40"
                       >
                         {draftLoading ? "Sending..." : "Send Payment Link"}
-                      </button>
+                      </button> */}
                       <button
                         onClick={() => handleCancelDraft(draft.id)}
                         disabled={draftCancelLoading}
@@ -2502,9 +2764,7 @@ export default function CartPanel({ cart = [], setCart }) {
                     onClick={() =>
                       handleFetchDrafts(draftPagination.current_page - 1)
                     }
-                    disabled={
-                      draftLoading || draftPagination.current_page <= 1
-                    }
+                    disabled={draftLoading || draftPagination.current_page <= 1}
                     className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 transition disabled:opacity-40"
                   >
                     Prev

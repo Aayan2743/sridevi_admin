@@ -203,6 +203,18 @@ export default function OnlinePOSOrders() {
     }
   };
 
+  const resendOrderDetails = async (saleId) => {
+    try {
+      const res = await api.post(
+        `/admin-dashboard/pos/orders/${saleId}/resend-order-details`,
+      );
+
+      alert(res.data.message);
+    } catch (err) {
+      alert(err.response?.data?.message || "Failed");
+    }
+  };
+
   /* ================= UI ================= */
   return (
     <div className="space-y-4">
@@ -333,6 +345,32 @@ export default function OnlinePOSOrders() {
                       ? new Date(o.created_at).toLocaleDateString()
                       : "-"}
                   </td>
+                  {/* <td className="p-3 space-y-1">
+                    <button
+                      onClick={() => handleCheckPayment(o.id)}
+                      disabled={checkingId === o.id}
+                      className="block w-full bg-green-600 text-white text-xs px-2 py-1 rounded disabled:opacity-50"
+                    >
+                      {checkingId === o.id ? "Checking..." : "Check Payment"}
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setSelectedOrderId(o.id);
+                        setShippingModal(true);
+                      }}
+                      className="block w-full bg-blue-600 text-white text-xs px-2 py-1 rounded"
+                    >
+                      Shipping
+                    </button>
+
+                    <button
+                      onClick={() => navigate(`/pos/orders/${o.id}`)}
+                      className="block text-xs text-indigo-600 text-center"
+                    >
+                      View
+                    </button>
+                  </td> */}
                   <td className="p-3 space-y-1">
                     <button
                       onClick={() => handleCheckPayment(o.id)}
@@ -341,6 +379,15 @@ export default function OnlinePOSOrders() {
                     >
                       {checkingId === o.id ? "Checking..." : "Check Payment"}
                     </button>
+
+                    {o.status === "pending_payment" && (
+                      <button
+                        onClick={() => resendOrderDetails(o.id)}
+                        className="block w-full bg-orange-600 text-white text-xs px-2 py-1 rounded"
+                      >
+                        Send Order Details
+                      </button>
+                    )}
 
                     <button
                       onClick={() => {
