@@ -7,6 +7,7 @@ import EditProductDrawer from "./components/EditProductDrawer";
 import StatusBadge from "./components/StatusBadge";
 import ProductSectionAssign from "./settings/components/ProductSectionAssign";
 import BulkProductUpload from "./components/BulkProductUpload";
+import BulkStoreUpload from "./components/BulkStoreUpload";
 import BulkVariationUpload from "./components/BulkVariationUpload";
 import { useAuth } from "../auth/AuthContext";
 
@@ -39,6 +40,7 @@ export default function Products() {
   const [totalPages, setTotalPages] = useState(1);
 
   const [bulkOpen, setBulkOpen] = useState(false); // 🔥 bulk upload modal
+  const [bulkStoreOpen, setBulkStoreOpen] = useState(false); // 🔥 bulk store upload modal
   const [bulkVariantOpen, setBulkVariantOpen] = useState(false); // 🔥 bulk variation upload modal
   const [openAdd, setOpenAdd] = useState(false);
   const [openAddStoreStock, setOpenAddStoreStock] = useState(false);
@@ -359,6 +361,9 @@ export default function Products() {
         variation: "/admin-dashboard/product/bulk-upload-variations",
         seo: "/admin-dashboard/product/bulk-upload-seo-meta",
         tax: "/admin-dashboard/product/bulk-upload-tax-affinity",
+        "store-product": "/admin-dashboard/offline-store/bulk-upload-products",
+
+        "store-variant": "/admin-dashboard/offline-store/bulk-upload-variants",
       };
 
       const endpoint = endpoints[bulkType];
@@ -510,6 +515,13 @@ export default function Products() {
                 Bulk Upload
               </button>
 
+              <button
+                onClick={() => setBulkStoreOpen(true)}
+                className="h-12 rounded-2xl border border-emerald-200 bg-white px-5 text-sm font-semibold text-emerald-600"
+              >
+                Store Bulk Upload
+              </button>
+
               {/* 🔥 ADD */}
               {can("product.add") && (
                 <div className="relative">
@@ -604,6 +616,14 @@ export default function Products() {
                           <option value="seo">SEO Upload</option>
 
                           <option value="tax">Tax & Affinity Upload</option>
+
+                          <option value="store-product">
+                            Store Product Upload
+                          </option>
+
+                          <option value="store-variant">
+                            Store Variant Upload
+                          </option>
                         </select>
 
                         {bulkType && (
@@ -1089,6 +1109,16 @@ export default function Products() {
           onClose={() => setBulkVariantOpen(false)}
           onSuccess={() => {
             setBulkVariantOpen(false);
+            fetchProducts();
+          }}
+        />
+
+        {/* 🔥 BULK STORE UPLOAD MODAL */}
+        <BulkStoreUpload
+          open={bulkStoreOpen}
+          onClose={() => setBulkStoreOpen(false)}
+          onSuccess={() => {
+            setBulkStoreOpen(false);
             fetchProducts();
           }}
         />

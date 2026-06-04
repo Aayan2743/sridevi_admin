@@ -123,6 +123,12 @@ const EditStepVariation = forwardRef(
     useEffect(() => {
       if (!variations.length) return;
 
+      // 🔥 Skip if we just prefilled data
+      if (skipNextRegen) {
+        setSkipNextRegen(false);
+        return;
+      }
+
       const groups = Object.values(selected).filter(
         (vals) => Array.isArray(vals) && vals.length,
       );
@@ -160,7 +166,7 @@ const EditStepVariation = forwardRef(
       );
 
       setLabels(combos.map((c) => c.label));
-    }, [selected, variations, existingCombinations]);
+    }, [selected, variations, existingCombinations, skipNextRegen]);
 
     /* ================= LOAD VARIATIONS ================= */
     useEffect(() => {
