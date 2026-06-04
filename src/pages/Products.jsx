@@ -24,6 +24,8 @@ export default function Products() {
   const [sections, setSections] = useState([]);
   const { can } = useAuth();
 
+  const [bulkType, setBulkType] = useState("");
+  const [bulkUploadOpen, setBulkUploadOpen] = useState(false);
   // 🔥 STATES
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -45,6 +47,8 @@ export default function Products() {
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [openEditStoreStock, setOpenEditStoreStock] = useState(false);
   const [selectedStoreStock, setSelectedStoreStock] = useState(null);
+
+  const [uploadFile, setUploadFile] = useState(null);
 
   const [columnOpen, setColumnOpen] = useState(false);
 
@@ -310,6 +314,73 @@ export default function Products() {
     }
   };
 
+  const downloadTemplate = async (type) => {
+    try {
+      const response = await api.get(
+        `/admin-dashboard/product-template/${type}`,
+        {
+          responseType: "blob",
+        },
+      );
+
+      const blob = new Blob([response.data]);
+
+      const url = window.URL.createObjectURL(blob);
+
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `${type}_template.xlsx`;
+
+      document.body.appendChild(link);
+      link.click();
+
+      link.remove();
+      window.URL.revokeObjectURL(url);
+
+      showSuccessToast("Template downloaded");
+    } catch (error) {
+      console.error(error);
+      showErrorToast("Failed to download template");
+    }
+  };
+
+  const handleBulkUpload = async () => {
+    if (!uploadFile) {
+      showErrorToast("Please select a file");
+      return;
+    }
+
+    try {
+      const formData = new FormData();
+      formData.append("file", uploadFile);
+
+      const endpoints = {
+        product: "/admin-dashboard/product/bulk-upload",
+        variation: "/admin-dashboard/product/bulk-upload-variations",
+        seo: "/admin-dashboard/product/bulk-upload-seo-meta",
+        tax: "/admin-dashboard/product/bulk-upload-tax-affinity",
+      };
+
+      const endpoint = endpoints[bulkType];
+
+      await api.post(endpoint, formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+
+      showSuccessToast("Upload successful");
+
+      setBulkUploadOpen(false);
+      setUploadFile(null);
+
+      fetchProducts();
+    } catch (error) {
+      console.error(error);
+      showErrorToast(error?.response?.data?.message || "Upload failed");
+    }
+  };
+
   if (!can("product.view")) return <div>No Access</div>;
 
   return (
@@ -433,16 +504,10 @@ export default function Products() {
 
               {/* 🔥 BULK UPLOAD buttons (always visible) */}
               <button
-                onClick={() => setBulkOpen(true)}
-                className="h-12 rounded-2xl border border-indigo-200 bg-white px-5 text-sm font-semibold text-indigo-600 shadow-sm transition hover:bg-indigo-50"
+                onClick={() => setBulkUploadOpen(true)}
+                className="h-12 rounded-2xl border border-indigo-200 bg-white px-5 text-sm font-semibold text-indigo-600"
               >
-                Bulk Upload Products
-              </button>
-              <button
-                onClick={() => setBulkVariantOpen(true)}
-                className="h-12 rounded-2xl border border-violet-200 bg-white px-5 text-sm font-semibold text-violet-600 shadow-sm transition hover:bg-violet-50"
-              >
-                Bulk Variations
+                Bulk Upload
               </button>
 
               {/* 🔥 ADD */}
@@ -513,6 +578,68 @@ export default function Products() {
                               Add in-store inventory only (no online publish).
                             </span>
                           </span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {bulkUploadOpen && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+                      <div className="w-full max-w-lg rounded-2xl bg-white p-6">
+                        <h3 className="text-lg font-semibold mb-4">
+                          Bulk Upload
+                        </h3>
+
+                        <select
+                          value={bulkType}
+                          onChange={(e) => setBulkType(e.target.value)}
+                          className="w-full border rounded-xl p-3"
+                        >
+                          <option value="">Select Upload Type</option>
+
+                          <option value="product">Product Upload</option>
+
+                          <option value="variation">Variation Upload</option>
+
+                          <option value="seo">SEO Upload</option>
+
+                          <option value="tax">Tax & Affinity Upload</option>
+                        </select>
+
+                        {bulkType && (
+                          <div className="mt-5 flex gap-3">
+                            <button
+                              onClick={() => downloadTemplate(bulkType)}
+                              className="px-4 py-2 bg-green-600 text-white rounded-lg"
+                            >
+                              Download Template
+                            </button>
+
+                            <div className="flex flex-col gap-3">
+                              <input
+                                type="file"
+                                accept=".xlsx,.xls,.csv"
+                                onChange={(e) =>
+                                  setUploadFile(e.target.files[0])
+                                }
+                                className="border p-2 rounded-lg"
+                              />
+
+                              <button
+                                onClick={handleBulkUpload}
+                                className="px-4 py-2 bg-indigo-600 text-white rounded-lg"
+                              >
+                                Upload Excel
+                              </button>
+                            </div>
+                          </div>
+                        )}
+
+                        <button
+                          onClick={() => setBulkUploadOpen(false)}
+                          className="mt-4 px-4 py-2 border rounded-lg"
+                        >
+                          Close
                         </button>
                       </div>
                     </div>

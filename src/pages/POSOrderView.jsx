@@ -27,11 +27,12 @@ export default function POSOrderView() {
   const loadOrder = async () => {
     try {
       setLoading(true);
+
       const res = await api.get(`/admin-dashboard/orders-details/${id}`);
+
       setOrder(res.data.data);
     } catch (err) {
       console.error("ORDER VIEW ERROR:", err);
-      alert("Failed to load order");
     } finally {
       setLoading(false);
     }
@@ -80,6 +81,48 @@ export default function POSOrderView() {
         </p>
       </div>
 
+      {/* ================= TRACKING ================= */}
+      <div className="bg-white rounded-xl shadow-sm p-4 mb-6">
+        <h3 className="font-semibold mb-3">Tracking Details</h3>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+          <p>
+            <b>Shipping Provider:</b> {order.tracking?.shipping_provider || "-"}
+          </p>
+
+          <p>
+            <b>Courier Partner:</b> {order.tracking?.partner || "-"}
+          </p>
+
+          <p>
+            <b>AWB:</b> {order.tracking?.awb || "-"}
+          </p>
+
+          <p>
+            <b>Status:</b> {order.tracking?.shipment_status || "-"}
+          </p>
+
+          <p>
+            <b>Shipping Charge:</b> ₹{order.tracking?.shipping_amount || 0}
+          </p>
+
+          <p className="md:col-span-2">
+            <b>Tracking URL:</b>{" "}
+            {order.tracking?.tracking_url ? (
+              <a
+                href={order.tracking.tracking_url}
+                target="_blank"
+                rel="noreferrer"
+                className="text-blue-600 underline"
+              >
+                Track Shipment
+              </a>
+            ) : (
+              "-"
+            )}
+          </p>
+        </div>
+      </div>
       {/* ================= MAIN GRID ================= */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* ================= ITEMS ================= */}
@@ -94,28 +137,33 @@ export default function POSOrderView() {
                 key={item.id}
                 className="flex items-center gap-4 border rounded-xl p-3 hover:bg-gray-50"
               >
-                {/* IMAGE */}
                 <div className="h-16 w-16 rounded-lg overflow-hidden border bg-gray-100">
                   <img
                     src={
-                      item.product?.images?.[0]?.image_url || "/no-image.png"
+                      item.product?.images?.find((i) => i.is_primary)
+                        ?.image_url ||
+                      item.product?.images?.[0]?.image_url ||
+                      "/no-image.png"
                     }
                     alt={item.product?.name}
                     className="h-full w-full object-cover"
                   />
+
+                  <p className="font-medium text-sm">{item.product?.name}</p>
                 </div>
 
-                {/* INFO */}
                 <div className="flex-1">
-                  <p className="font-medium text-sm">{item.product?.name}</p>
+                  <p className="font-medium text-sm">
+                    {item.product_name || `Product #${item.product_id}`}
+                  </p>
+
                   <p className="text-xs text-gray-400">
                     Qty {item.quantity} × ₹{item.price}
                   </p>
                 </div>
 
-                {/* TOTAL */}
                 <div className="font-semibold text-sm">
-                  ₹ {Number(item.quantity) * Number(item.price)}
+                  ₹ {item.quantity * item.price}
                 </div>
               </div>
             ))}
