@@ -1,7 +1,25 @@
 import React from "react";
-
+import api from "../api/axios";
 export default function ShippingProviderModal({ open, onClose, onSelect }) {
   if (!open) return null;
+
+  const handleShippingProvider = async (provider) => {
+    try {
+      const response = await api.post(
+        `/orders/${selectedOrder.id}/ship/${provider}`,
+      );
+
+      if (response.data.success) {
+        alert("Shipment created successfully");
+
+        console.log(response.data.data);
+
+        loadOrders();
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  };
 
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">

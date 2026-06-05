@@ -51,6 +51,16 @@ export default function OnlinePOSOrders() {
     }
   };
 
+  /* ================= PACKAGE DIMENSIONS ================= */
+  const [dimensionsModal, setDimensionsModal] = useState(false);
+  const [selectedProvider, setSelectedProvider] = useState(null);
+  const [packageDimensions, setPackageDimensions] = useState({
+    weight: 500,
+    length: 10,
+    breadth: 10,
+    height: 10,
+  });
+
   /* ================= LOCAL COURIER ================= */
   const [localOpen, setLocalOpen] = useState(false);
   const [selectedOrderId, setSelectedOrderId] = useState(null);
@@ -116,6 +126,10 @@ export default function OnlinePOSOrders() {
         awb_number: localCourier.awb,
         tracking_url: localCourier.tracking_url,
         shipping_amount: localCourier.shipping_amount,
+        package_weight: packageDimensions.weight,
+        package_length: packageDimensions.length,
+        package_breadth: packageDimensions.breadth,
+        package_height: packageDimensions.height,
       });
 
       alert("Shipping details saved");
@@ -182,8 +196,22 @@ export default function OnlinePOSOrders() {
   // };
   const handleShippingProvider = async (provider) => {
     setShippingModal(false);
+    setSelectedProvider(provider);
+    setPackageDimensions({
+      weight: 500,
+      length: 10,
+      breadth: 10,
+      height: 10,
+    });
+    setDimensionsModal(true);
+  };
+
+  const proceedWithShipping = async () => {
+    const provider = selectedProvider;
+    const dims = packageDimensions;
 
     if (provider === "local") {
+      setDimensionsModal(false);
       setLocalOpen(true);
       return;
     }
@@ -193,6 +221,10 @@ export default function OnlinePOSOrders() {
         `/admin-dashboard/orders/${selectedOrderId}/shipping`,
         {
           shipping_provider: provider,
+          package_weight: dims.weight,
+          package_length: dims.length,
+          package_breadth: dims.breadth,
+          package_height: dims.height,
         },
       );
 
@@ -200,6 +232,8 @@ export default function OnlinePOSOrders() {
       loadOrders();
     } catch (err) {
       alert(err.response?.data?.message || "Shipping failed");
+    } finally {
+      setDimensionsModal(false);
     }
   };
 
@@ -591,6 +625,116 @@ export default function OnlinePOSOrders() {
           </div>
         </div>
       )}
+
+      {/* PACKAGE DIMENSIONS POPUP */}
+      {dimensionsModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden">
+            {/* Header */}
+            <div className="bg-blue-600 px-6 py-4">
+              <h3 className="text-xl font-semibold text-white">
+                Package Dimensions
+              </h3>
+              <p className="text-blue-100 text-sm mt-1">
+                Enter package details for {selectedProvider?.toUpperCase()}
+              </p>
+            </div>
+
+            {/* Form */}
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Package Weight (g)
+                </label>
+                <input
+                  type="number"
+                  placeholder="e.g. 500"
+                  value={packageDimensions.weight}
+                  onChange={(e) =>
+                    setPackageDimensions({
+                      ...packageDimensions,
+                      weight: e.target.value,
+                    })
+                  }
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Package Length (cm)
+                </label>
+                <input
+                  type="number"
+                  placeholder="e.g. 10"
+                  value={packageDimensions.length}
+                  onChange={(e) =>
+                    setPackageDimensions({
+                      ...packageDimensions,
+                      length: e.target.value,
+                    })
+                  }
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Package Breadth (cm)
+                </label>
+                <input
+                  type="number"
+                  placeholder="e.g. 10"
+                  value={packageDimensions.breadth}
+                  onChange={(e) =>
+                    setPackageDimensions({
+                      ...packageDimensions,
+                      breadth: e.target.value,
+                    })
+                  }
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Package Height (cm)
+                </label>
+                <input
+                  type="number"
+                  placeholder="e.g. 10"
+                  value={packageDimensions.height}
+                  onChange={(e) =>
+                    setPackageDimensions({
+                      ...packageDimensions,
+                      height: e.target.value,
+                    })
+                  }
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                />
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="px-6 pb-6 flex gap-3">
+              <button
+                onClick={proceedWithShipping}
+                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 rounded-lg transition"
+              >
+                Proceed
+              </button>
+
+              <button
+                onClick={() => setDimensionsModal(false)}
+                className="flex-1 border border-gray-300 hover:bg-gray-100 py-2.5 rounded-lg font-medium transition"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <ShippingProviderModal
         open={shippingModal}
         onClose={() => setShippingModal(false)}
