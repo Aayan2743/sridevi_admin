@@ -237,12 +237,20 @@ export default function CartPanel({ cart = [], setCart }) {
       customer_phone: customer.phone,
       address_snapshot: null,
 
-          items: cart.map((item) => ({
-            product_id: item.product_id,
-            variant_id: item.variation_id,
-            qty: item.qty,
-            barcode_id: item.barcode_id ?? null,
-          })),
+      items: cart.map((item) => ({
+        product_id: item.product_id,
+        variant_id: item.variation_id,
+        qty: item.qty,
+        barcode_id: item.barcode_id ?? null,
+        // Snapshot: freeze billing values at the time of order creation
+        product_name: item.product_name,
+        variation_name: item.variation_name,
+        price: Number(item.price) || 0,
+        MRP: Number(item.mrp || item.MRP) || 0,
+        discount: Number(item.discount) || 0,
+        stock: Number(item.stock) || 1,
+        tax: item.tax || null,
+      })),
     };
 
     try {
@@ -878,6 +886,14 @@ export default function CartPanel({ cart = [], setCart }) {
         variant_id: item.variation_id,
         qty: item.qty,
         barcode_id: item.barcode_id ?? null,
+        // Snapshot: freeze billing values at the time of order creation
+        product_name: item.product_name,
+        variation_name: item.variation_name,
+        price: Number(item.price) || 0,
+        MRP: Number(item.mrp || item.MRP) || 0,
+        discount: Number(item.discount) || 0,
+        stock: Number(item.stock) || 1,
+        tax: item.tax || null,
       })),
     };
 

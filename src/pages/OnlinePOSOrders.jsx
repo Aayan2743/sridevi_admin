@@ -215,6 +215,23 @@ export default function OnlinePOSOrders() {
     }
   };
 
+  const deleteOrder = async (orderId) => {
+    if (!window.confirm("Are you sure you want to delete this order?")) {
+      return;
+    }
+
+    try {
+      const res = await api.delete(
+        `/admin-dashboard/order/delete-order/${orderId}`,
+      );
+
+      alert(res.data.message || "Order deleted successfully");
+      loadOrders();
+    } catch (err) {
+      alert(err.response?.data?.message || "Failed to delete order");
+    }
+  };
+
   /* ================= UI ================= */
   return (
     <div className="space-y-4">
@@ -381,12 +398,21 @@ export default function OnlinePOSOrders() {
                     </button>
 
                     {o.status === "pending_payment" && (
-                      <button
-                        onClick={() => resendOrderDetails(o.id)}
-                        className="block w-full bg-orange-600 text-white text-xs px-2 py-1 rounded"
-                      >
-                        Send Order Details
-                      </button>
+                      <>
+                        <button
+                          onClick={() => resendOrderDetails(o.id)}
+                          className="block w-full bg-orange-600 text-white text-xs px-2 py-1 rounded"
+                        >
+                          Send Order Details
+                        </button>
+
+                        <button
+                          onClick={() => deleteOrder(o.id)}
+                          className="block w-full bg-red-600 text-white text-xs px-2 py-1 rounded"
+                        >
+                          Delete Order
+                        </button>
+                      </>
                     )}
 
                     <button
