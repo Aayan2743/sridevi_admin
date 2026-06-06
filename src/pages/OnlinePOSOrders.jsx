@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import Swal from "sweetalert2";
 import api from "../api/axios";
 import ShippingProviderModal from "./ShippingProviderModal";
 
@@ -23,8 +24,13 @@ export default function OnlinePOSOrders() {
   const [shippingModal, setShippingModal] = useState(false);
   // const [selectedOrderId, setSelectedOrderId] = useState(null);
 
-  /* ================= CHECK PAYMENT ================= */
+  /* ================= ACTION LOADING STATES ================= */
   const [checkingId, setCheckingId] = useState(null);
+  const [sendingId, setSendingId] = useState(null);
+  const [deletingId, setDeletingId] = useState(null);
+  const [cancellingId, setCancellingId] = useState(null);
+  const [localSaving, setLocalSaving] = useState(false);
+  const [shippingProcessing, setShippingProcessing] = useState(false);
 
   const handleCheckPayment = async (saleId) => {
     setCheckingId(saleId);
@@ -33,19 +39,33 @@ export default function OnlinePOSOrders() {
         sale_id: saleId,
       });
       if (res.data.success || res.data.data?.status === "complete") {
-        alert(
-          `✅ Payment received!\nInvoice: ${res.data.data.invoice_number || "-"}\nAmount: ₹${res.data.data.grand_total || "-"}\nStatus: ${res.data.data.status}`,
-        );
-        loadOrders(); // refresh list so badge updates
+        Swal.fire({
+          icon: "success",
+          title: "Payment Received",
+          html: `
+            <div class="text-left text-sm">
+              <p><strong>Invoice:</strong> ${res.data.data.invoice_number || "-"}</p>
+              <p><strong>Amount:</strong> ₹${res.data.data.grand_total || "-"}</p>
+              <p><strong>Status:</strong> ${res.data.data.status}</p>
+            </div>
+          `,
+          timer: 3000,
+          showConfirmButton: false,
+        });
+        loadOrders();
       } else {
-        alert(
-          `⏳ Payment not yet received.\n${res.data.message || "Please check again later."}`,
-        );
+        Swal.fire({
+          icon: "info",
+          title: "Payment Pending",
+          text: res.data.message || "Please check again later.",
+          timer: 3000,
+          showConfirmButton: false,
+        });
       }
     } catch (err) {
       const msg =
         err.response?.data?.message || "Failed to check payment status";
-      alert("❌ " + msg);
+      Swal.fire({ icon: "error", title: "Error", text: msg });
     } finally {
       setCheckingId(null);
     }
@@ -103,22 +123,40 @@ export default function OnlinePOSOrders() {
 
   /* ================= SHIPROCKET ================= */
   const sendToShiprocket = async (orderId) => {
-    if (!window.confirm("Send this order to Shiprocket?")) return;
+    const confirmed = await Swal.fire({
+      title: "Send to Shiprocket?",
+      icon: "question",
+      showCancelButton: true,
+      confirmButtonText: "Yes, send",
+      cancelButtonText: "Cancel",
+    });
+    if (!confirmed.isConfirmed) return;
 
     try {
       const res = await api.post(
         `/admin-dashboard/shiprocket/create/${orderId}`,
       );
 
-      alert(`Shipment created!\nAWB: ${res.data.data?.awb_code || "-"}`);
+      Swal.fire({
+        icon: "success",
+        title: "Shipment Created!",
+        text: `AWB: ${res.data.data?.awb_code || "-"}`,
+        timer: 2500,
+        showConfirmButton: false,
+      });
       loadOrders();
     } catch (err) {
-      alert(err.response?.data?.message || "Shiprocket failed");
+      Swal.fire({
+        icon: "error",
+        title: "Shiprocket Failed",
+        text: err.response?.data?.message || "Shiprocket failed",
+      });
     }
   };
 
   /* ================= LOCAL COURIER SAVE ================= */
   const saveLocalCourier = async () => {
+    setLocalSaving(true);
     try {
       await api.post(`/admin-dashboard/orders/${selectedOrderId}/shipping`, {
         shipping_provider: "local",
@@ -132,30 +170,46 @@ export default function OnlinePOSOrders() {
         package_height: packageDimensions.height,
       });
 
-      alert("Shipping details saved");
+      Swal.fire({
+        icon: "success",
+        title: "Shipping Details Saved",
+        timer: 2000,
+        showConfirmButton: false,
+      });
 
       setLocalOpen(false);
-
       loadOrders();
     } catch (err) {
-      alert(err.response?.data?.message || "Failed");
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: err.response?.data?.message || "Failed to save shipping details",
+      });
+    } finally {
+      setLocalSaving(false);
     }
   };
 
   /* ================= STATUS BADGE ================= */
   const shipmentBadge = (status) => {
-    if (!status)
+    if (!status) {
       return <span className="text-xs text-gray-400">Not shipped</span>;
+    }
+
     const map = {
       pending: "bg-gray-200 text-gray-700",
+      booked: "bg-blue-100 text-blue-700",
       created: "bg-blue-100 text-blue-700",
       shipped: "bg-indigo-100 text-indigo-700",
       delivered: "bg-green-100 text-green-700",
       cancelled: "bg-red-100 text-red-700",
     };
+
     return (
       <span
-        className={`px-2 py-1 rounded text-xs ${map[status] || "bg-gray-100"}`}
+        className={`px-2 py-1 rounded text-xs ${
+          map[status] || "bg-gray-100 text-gray-700"
+        }`}
       >
         {status.toUpperCase()}
       </span>
@@ -216,6 +270,7 @@ export default function OnlinePOSOrders() {
       return;
     }
 
+    setShippingProcessing(true);
     try {
       const res = await api.post(
         `/admin-dashboard/orders/${selectedOrderId}/shipping`,
@@ -228,41 +283,121 @@ export default function OnlinePOSOrders() {
         },
       );
 
-      alert(res.data.message);
+      Swal.fire({
+        icon: "success",
+        title: "Shipping Successful",
+        text: res.data.message,
+        timer: 2000,
+        showConfirmButton: false,
+      });
       loadOrders();
     } catch (err) {
-      alert(err.response?.data?.message || "Shipping failed");
+      Swal.fire({
+        icon: "error",
+        title: "Shipping Failed",
+        text: err.response?.data?.message || "Shipping failed",
+      });
     } finally {
       setDimensionsModal(false);
+      setShippingProcessing(false);
     }
   };
 
   const resendOrderDetails = async (saleId) => {
+    setSendingId(saleId);
     try {
       const res = await api.post(
         `/admin-dashboard/pos/orders/${saleId}/resend-order-details`,
       );
 
-      alert(res.data.message);
+      Swal.fire({
+        icon: "success",
+        title: "Sent",
+        text: res.data.message,
+        timer: 2000,
+        showConfirmButton: false,
+      });
     } catch (err) {
-      alert(err.response?.data?.message || "Failed");
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: err.response?.data?.message || "Failed to send order details",
+      });
+    } finally {
+      setSendingId(null);
     }
   };
 
   const deleteOrder = async (orderId) => {
-    if (!window.confirm("Are you sure you want to delete this order?")) {
-      return;
-    }
+    const confirmed = await Swal.fire({
+      title: "Delete this order?",
+      text: "This action cannot be undone.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#d33",
+      confirmButtonText: "Yes, delete it!",
+      cancelButtonText: "Cancel",
+    });
+    if (!confirmed.isConfirmed) return;
 
+    setDeletingId(orderId);
     try {
       const res = await api.delete(
         `/admin-dashboard/order/delete-order/${orderId}`,
       );
 
-      alert(res.data.message || "Order deleted successfully");
+      Swal.fire({
+        icon: "success",
+        title: "Deleted",
+        text: res.data.message || "Order deleted successfully",
+        timer: 2000,
+        showConfirmButton: false,
+      });
       loadOrders();
     } catch (err) {
-      alert(err.response?.data?.message || "Failed to delete order");
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: err.response?.data?.message || "Failed to delete order",
+      });
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  const cancelShipment = async (shippingId) => {
+    const confirmed = await Swal.fire({
+      title: "Cancel this shipment?",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#d33",
+      confirmButtonText: "Yes, cancel",
+      cancelButtonText: "No",
+    });
+    if (!confirmed.isConfirmed) return;
+
+    setCancellingId(shippingId);
+    try {
+      const res = await api.post(
+        `/admin-dashboard/shipping/${shippingId}/cancel`,
+      );
+
+      Swal.fire({
+        icon: "success",
+        title: "Cancelled",
+        text: res.data.message,
+        timer: 2000,
+        showConfirmButton: false,
+      });
+      loadOrders();
+    } catch (err) {
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: err.response?.data?.message || "Failed to cancel shipment",
+      });
+    } finally {
+      setCancellingId(null);
     }
   };
 
@@ -367,11 +502,17 @@ export default function OnlinePOSOrders() {
                     </span>
                   </td>
                   <td className="p-3 space-y-1">
-                    {shipmentBadge(o.shipment_status)}
-                    {o.awb_no && (
-                      <div className="text-xs text-gray-500">
-                        AWB: {o.awb_no}
-                      </div>
+                    {shipmentBadge(o.shipping?.shipment_status)}
+
+                    {o.shipping?.awb && (
+                      <>
+                        <div className="text-xs text-gray-500">
+                          AWB: {o.shipping.awb}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          Provider: {o.shipping.shipping_provider}
+                        </div>
+                      </>
                     )}
                   </td>
                   <td className="p-3">
@@ -435,29 +576,48 @@ export default function OnlinePOSOrders() {
                       <>
                         <button
                           onClick={() => resendOrderDetails(o.id)}
-                          className="block w-full bg-orange-600 text-white text-xs px-2 py-1 rounded"
+                          disabled={sendingId === o.id}
+                          className="block w-full bg-orange-600 text-white text-xs px-2 py-1 rounded disabled:opacity-50"
                         >
-                          Send Order Details
+                          {sendingId === o.id
+                            ? "Sending..."
+                            : "Send Order Details"}
                         </button>
 
                         <button
                           onClick={() => deleteOrder(o.id)}
-                          className="block w-full bg-red-600 text-white text-xs px-2 py-1 rounded"
+                          disabled={deletingId === o.id}
+                          className="block w-full bg-red-600 text-white text-xs px-2 py-1 rounded disabled:opacity-50"
                         >
-                          Delete Order
+                          {deletingId === o.id ? "Deleting..." : "Delete Order"}
                         </button>
                       </>
                     )}
 
-                    <button
-                      onClick={() => {
-                        setSelectedOrderId(o.id);
-                        setShippingModal(true);
-                      }}
-                      className="block w-full bg-blue-600 text-white text-xs px-2 py-1 rounded"
-                    >
-                      Shipping
-                    </button>
+                    {(!o.shipping ||
+                      o.shipping.shipment_status !== "booked") && (
+                      <button
+                        onClick={() => {
+                          setSelectedOrderId(o.id);
+                          setShippingModal(true);
+                        }}
+                        className="block w-full bg-blue-600 text-white text-xs px-2 py-1 rounded"
+                      >
+                        Shipping
+                      </button>
+                    )}
+
+                    {o.shipping?.shipment_status === "booked" && (
+                      <button
+                        onClick={() => cancelShipment(o.shipping.id)}
+                        disabled={cancellingId === o.shipping.id}
+                        className="block w-full bg-red-600 text-white text-xs px-2 py-1 rounded disabled:opacity-50"
+                      >
+                        {cancellingId === o.shipping.id
+                          ? "Cancelling..."
+                          : "Cancel Shipment"}
+                      </button>
+                    )}
 
                     <button
                       onClick={() => navigate(`/pos/orders/${o.id}`)}
@@ -610,9 +770,10 @@ export default function OnlinePOSOrders() {
             <div className="px-6 pb-6 flex gap-3">
               <button
                 onClick={saveLocalCourier}
-                className="flex-1 bg-orange-600 hover:bg-orange-700 text-white font-medium py-2.5 rounded-lg transition"
+                disabled={localSaving}
+                className="flex-1 bg-orange-600 hover:bg-orange-700 text-white font-medium py-2.5 rounded-lg transition disabled:opacity-50"
               >
-                Save Courier
+                {localSaving ? "Saving..." : "Save Courier"}
               </button>
 
               <button
@@ -719,9 +880,10 @@ export default function OnlinePOSOrders() {
             <div className="px-6 pb-6 flex gap-3">
               <button
                 onClick={proceedWithShipping}
-                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 rounded-lg transition"
+                disabled={shippingProcessing}
+                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 rounded-lg transition disabled:opacity-50"
               >
-                Proceed
+                {shippingProcessing ? "Processing..." : "Proceed"}
               </button>
 
               <button

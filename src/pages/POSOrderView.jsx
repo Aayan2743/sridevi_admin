@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import Swal from "sweetalert2";
 import api from "../api/axios";
 
 /* ================= ROW ================= */
@@ -18,6 +19,10 @@ export default function POSOrderView() {
 
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [showShippingModal, setShowShippingModal] = useState(false);
+  const [shippingHistory, setShippingHistory] = useState([]);
+  const [shippingHistoryLoading, setShippingHistoryLoading] = useState(false);
+  const [shippingBtnLoading, setShippingBtnLoading] = useState(false);
 
   /* ================= PARSE ITEMS (snapshot JSON string → array) ================= */
   const parsedItems = useMemo(() => {
@@ -59,6 +64,42 @@ export default function POSOrderView() {
     }
   };
 
+  /* ================= FETCH SHIPPING HISTORY ================= */
+  const fetchShippingHistory = async () => {
+    try {
+      setShowShippingModal(true);
+      setShippingBtnLoading(true);
+      setShippingHistoryLoading(true);
+
+      const res = await api.get(`/admin-dashboard/orders/${id}/shipping-all`);
+
+      const records = res.data.data?.data ?? [];
+
+      setShippingHistory(records);
+
+      if (records.length === 0) {
+        Swal.fire({
+          icon: "info",
+          title: "No Records",
+          text: "No shipping records found for this order.",
+          timer: 2000,
+          showConfirmButton: false,
+        });
+      }
+    } catch (err) {
+      console.error("SHIPPING HISTORY ERROR:", err);
+      setShippingHistory([]);
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: err.response?.data?.message || "Failed to load shipping history.",
+      });
+    } finally {
+      setShippingHistoryLoading(false);
+      setShippingBtnLoading(false);
+    }
+  };
+
   /* ================= CALCULATIONS ================= */
   const itemsTotal = useMemo(() => {
     return parsedItems.reduce(
@@ -79,12 +120,43 @@ export default function POSOrderView() {
           <p className="text-sm text-gray-500">Status: {order.status}</p>
         </div>
 
-        <button
-          onClick={() => navigate("/orders")}
-          className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm hover:bg-indigo-700"
-        >
-          Back
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={fetchShippingHistory}
+            disabled={shippingBtnLoading}
+            className="px-4 py-2 bg-teal-600 text-white rounded-lg text-sm hover:bg-teal-700 disabled:opacity-60 disabled:cursor-not-allowed inline-flex items-center gap-2"
+          >
+            {shippingBtnLoading && (
+              <svg
+                className="animate-spin h-4 w-4 text-white"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                />
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                />
+              </svg>
+            )}
+            {shippingBtnLoading ? "Loading..." : "All Shipping Details"}
+          </button>
+          <button
+            onClick={() => navigate("/orders")}
+            className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm hover:bg-indigo-700"
+          >
+            Back
+          </button>
+        </div>
       </div>
 
       {/* ================= CUSTOMER ================= */}
@@ -253,6 +325,147 @@ export default function POSOrderView() {
           </div>
         </div>
       </div>
+
+      {/* ================= SHIPPING DETAILS MODAL ================= */}
+      {showShippingModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-lg w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center p-5 border-b">
+              <h2 className="text-lg font-semibold">All Shipping Details</h2>
+              <button
+                onClick={() => setShowShippingModal(false)}
+                className="text-gray-400 hover:text-gray-600 text-xl leading-none"
+              >
+                &times;
+              </button>
+            </div>
+
+            <div className="p-5 space-y-4 text-sm">
+              {/* Shipping Address */}
+              <div>
+                <h4 className="font-semibold text-base mb-2">Shipping Address</h4>
+                <p>{order.address?.address_line1 || "-"}</p>
+                {order.address?.address_line2 && <p>{order.address.address_line2}</p>}
+                <p>
+                  {[order.address?.city, order.address?.state, order.address?.pincode]
+                    .filter(Boolean)
+                    .join(", ") || "-"}
+                </p>
+              </div>
+
+              <hr />
+
+              {/* Loading State */}
+              {shippingHistoryLoading && (
+                <div className="text-center py-6 text-gray-500">
+                  Loading shipping history...
+                </div>
+              )}
+
+              {/* No Records */}
+              {!shippingHistoryLoading && shippingHistory.length === 0 && (
+                <div className="text-center py-6 text-gray-500">
+                  No shipping records found.
+                </div>
+              )}
+
+              {/* Shipping Records */}
+              {!shippingHistoryLoading &&
+                shippingHistory.map((record, idx) => (
+                  <div
+                    key={record.id ?? idx}
+                    className="border rounded-lg p-4 space-y-2 hover:bg-gray-50"
+                  >
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-xs font-medium text-gray-400 uppercase tracking-wide">
+                        Shipment #{idx + 1}
+                      </span>
+                      <span
+                        className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                          record.shipment_status === "delivered"
+                            ? "bg-green-100 text-green-700"
+                            : record.shipment_status === "cancelled"
+                              ? "bg-red-100 text-red-700"
+                              : record.shipment_status === "shipped"
+                                ? "bg-blue-100 text-blue-700"
+                                : "bg-gray-100 text-gray-600"
+                        }`}
+                      >
+                        {record.shipment_status || "-"}
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
+                      <div>
+                        <span className="text-gray-500">Shipping Provider</span>
+                        <p className="font-medium">{record.shipping_provider || "-"}</p>
+                      </div>
+                      <div>
+                        <span className="text-gray-500">Courier Partner</span>
+                        <p className="font-medium">{record.partner || "-"}</p>
+                      </div>
+                      <div>
+                        <span className="text-gray-500">AWB Number</span>
+                        <p className="font-medium">{record.awb || "-"}</p>
+                      </div>
+                      <div>
+                        <span className="text-gray-500">Shipping Charge</span>
+                        <p className="font-medium">₹{record.shipping_amount || 0}</p>
+                      </div>
+                      <div className="col-span-2">
+                        <span className="text-gray-500">Date</span>
+                        <p className="font-medium">
+                          {record.created_at
+                            ? new Date(record.created_at).toLocaleString("en-IN", {
+                                day: "numeric",
+                                month: "short",
+                                year: "numeric",
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })
+                            : "-"}
+                        </p>
+                      </div>
+                    </div>
+
+                    {record.tracking_url && (
+                      <div className="pt-1">
+                        <a
+                          href={record.tracking_url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-blue-600 underline text-xs break-all"
+                        >
+                          {record.tracking_url}
+                        </a>
+                      </div>
+                    )}
+                  </div>
+                ))}
+
+              {/* Order-level notes / extra fields */}
+              {order.shipping_note && (
+                <>
+                  <hr />
+                  <div>
+                    <h4 className="font-semibold text-base mb-1">Shipping Note</h4>
+                    <p className="text-gray-700">{order.shipping_note}</p>
+                  </div>
+                </>
+              )}
+            </div>
+
+            <div className="p-4 border-t flex justify-end">
+              <button
+                onClick={() => setShowShippingModal(false)}
+                className="px-5 py-2 bg-gray-200 rounded-lg text-sm hover:bg-gray-300"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

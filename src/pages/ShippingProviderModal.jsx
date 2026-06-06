@@ -1,4 +1,5 @@
 import React from "react";
+import Swal from "sweetalert2";
 import api from "../api/axios";
 export default function ShippingProviderModal({ open, onClose, onSelect }) {
   if (!open) return null;
@@ -10,7 +11,13 @@ export default function ShippingProviderModal({ open, onClose, onSelect }) {
       );
 
       if (response.data.success) {
-        alert("Shipment created successfully");
+        Swal.fire({
+          icon: "success",
+          title: "Success",
+          text: "Shipment created successfully",
+          timer: 2000,
+          showConfirmButton: false,
+        });
 
         console.log(response.data.data);
 
@@ -18,6 +25,11 @@ export default function ShippingProviderModal({ open, onClose, onSelect }) {
       }
     } catch (error) {
       console.error(error);
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: error.response?.data?.message || "Shipment creation failed",
+      });
     }
   };
 
