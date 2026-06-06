@@ -39,11 +39,23 @@ export default function ShippingProviderModal({ open, onClose, onSelect }) {
         <h3 className="text-lg font-semibold mb-4">Select Shipping Provider</h3>
 
         <div className="space-y-2">
-          <button
+          {/* <button
             onClick={() => onSelect("shiprocket")}
             className="w-full bg-blue-600 text-white py-2 rounded"
           >
             Shiprocket
+          </button> */}
+          <button
+            onClick={() => {
+              Swal.fire({
+                icon: "info",
+                title: "Coming Soon",
+                text: "DTDC integration is under development.",
+              });
+            }}
+            className="w-full bg-blue-600 text-white py-2 rounded"
+          >
+            DTDC
           </button>
 
           <button

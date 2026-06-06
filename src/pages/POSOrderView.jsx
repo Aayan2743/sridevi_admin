@@ -23,6 +23,9 @@ export default function POSOrderView() {
   const [shippingHistory, setShippingHistory] = useState([]);
   const [shippingHistoryLoading, setShippingHistoryLoading] = useState(false);
   const [shippingBtnLoading, setShippingBtnLoading] = useState(false);
+  const [packedItems, setPackedItems] = useState({});
+  const [packingMode, setPackingMode] = useState(false);
+  const [packingLoading, setPackingLoading] = useState(false);
 
   /* ================= PARSE ITEMS (snapshot JSON string → array) ================= */
   const parsedItems = useMemo(() => {
@@ -100,6 +103,72 @@ export default function POSOrderView() {
     }
   };
 
+  /* ================= PACKING HANDLERS ================= */
+  const togglePacked = (itemKey) => {
+    setPackedItems((prev) => ({
+      ...prev,
+      [itemKey]: !prev[itemKey],
+    }));
+  };
+
+  const handleStartPacking = () => {
+    setPackingMode(true);
+    setPackedItems({});
+  };
+
+  const handleCancelPacking = () => {
+    setPackingMode(false);
+    setPackedItems({});
+  };
+
+  const handleConfirmPacking = async () => {
+    const allPacked = parsedItems.every(
+      (item, idx) => packedItems[item.id ?? idx],
+    );
+
+    if (!allPacked) {
+      Swal.fire({
+        icon: "warning",
+        title: "Incomplete Packing",
+        text: "Please check all items before confirming packing.",
+        confirmButtonText: "OK",
+      });
+      return;
+    }
+
+    setPackingLoading(true);
+    try {
+      await api.post(`/admin-dashboard/orders/${id}/packing`, {
+        packed_items: parsedItems.map((item, idx) => ({
+          item_id: item.id,
+          product_id: item.product_id,
+          qty: item.qty ?? item.quantity ?? 1,
+          packed: true,
+        })),
+      });
+
+      Swal.fire({
+        icon: "success",
+        title: "Packing Confirmed",
+        text: "All items have been packed successfully.",
+        timer: 2000,
+        showConfirmButton: false,
+      });
+
+      setPackingMode(false);
+      setPackedItems({});
+      loadOrder();
+    } catch (err) {
+      Swal.fire({
+        icon: "error",
+        title: "Packing Failed",
+        text: err.response?.data?.message || "Failed to confirm packing.",
+      });
+    } finally {
+      setPackingLoading(false);
+    }
+  };
+
   /* ================= CALCULATIONS ================= */
   const itemsTotal = useMemo(() => {
     return parsedItems.reduce(
@@ -117,10 +186,65 @@ export default function POSOrderView() {
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-2xl font-semibold">Order #{order.id}</h1>
-          <p className="text-sm text-gray-500">Status: {order.status}</p>
+          <div className="flex items-center gap-2">
+            <p className="text-sm text-gray-500">Status: {order.status} </p>
+            {order.package === "packed" && (
+              <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-green-100 text-green-700">
+                Packing Complete
+              </span>
+            )}
+          </div>
         </div>
 
         <div className="flex gap-2">
+          {order.status === "pending" && !packingMode && (
+            <button
+              onClick={handleStartPacking}
+              className="px-4 py-2 bg-amber-600 text-white rounded-lg text-sm hover:bg-amber-700"
+            >
+              Start Packing
+            </button>
+          )}
+
+          {packingMode && (
+            <>
+              <button
+                onClick={handleConfirmPacking}
+                disabled={packingLoading}
+                className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700 disabled:opacity-60 inline-flex items-center gap-2"
+              >
+                {packingLoading && (
+                  <svg
+                    className="animate-spin h-4 w-4 text-white"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    />
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                    />
+                  </svg>
+                )}
+                {packingLoading ? "Confirming..." : "Confirm Packing"}
+              </button>
+              <button
+                onClick={handleCancelPacking}
+                className="px-4 py-2 bg-gray-500 text-white rounded-lg text-sm hover:bg-gray-600"
+              >
+                Cancel Packing
+              </button>
+            </>
+          )}
           <button
             onClick={fetchShippingHistory}
             disabled={shippingBtnLoading}
@@ -219,9 +343,16 @@ export default function POSOrderView() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* ================= ITEMS ================= */}
         <div className="lg:col-span-2 bg-white rounded-xl shadow-sm p-4">
-          <h3 className="text-lg font-semibold mb-4">
-            Items ({parsedItems.length})
-          </h3>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold">
+              Items ({parsedItems.length})
+            </h3>
+            {packingMode && (
+              <span className="text-xs text-amber-600 font-medium bg-amber-50 px-2 py-1 rounded">
+                Packing Mode
+              </span>
+            )}
+          </div>
 
           <div className="max-h-[520px] overflow-y-auto space-y-3 pr-2">
             {parsedItems.map((item, idx) => {
@@ -234,7 +365,13 @@ export default function POSOrderView() {
               return (
                 <div
                   key={item.id ?? idx}
-                  className="flex items-center gap-4 border rounded-xl p-3 hover:bg-gray-50"
+                  className={`flex items-center gap-4 border rounded-xl p-3 hover:bg-gray-50 transition-colors ${
+                    packingMode && packedItems[item.id ?? idx]
+                      ? "border-green-400 bg-green-50"
+                      : packingMode
+                        ? "border-amber-200"
+                        : ""
+                  }`}
                 >
                   <div className="h-16 w-16 rounded-lg overflow-hidden border bg-gray-100 shrink-0">
                     <img
@@ -267,16 +404,27 @@ export default function POSOrderView() {
                           Disc: ₹{discount.toFixed(2)}
                         </span>
                       )}
-                      {item.tax?.gst_enabled && item.tax?.gst_type === "exclusive" && (
-                        <span className="text-emerald-600">
-                          GST: {item.tax.gst_percent}%
-                        </span>
-                      )}
+                      {item.tax?.gst_enabled &&
+                        item.tax?.gst_type === "exclusive" && (
+                          <span className="text-emerald-600">
+                            GST: {item.tax.gst_percent}%
+                          </span>
+                        )}
                     </div>
                   </div>
 
-                  <div className="font-semibold text-sm whitespace-nowrap">
-                    ₹{lineTotal.toFixed(2)}
+                  <div className="flex items-center gap-2">
+                    {packingMode && (
+                      <input
+                        type="checkbox"
+                        checked={!!packedItems[item.id ?? idx]}
+                        onChange={() => togglePacked(item.id ?? idx)}
+                        className="h-5 w-5 rounded border-gray-300 text-green-600 focus:ring-green-500 cursor-pointer"
+                      />
+                    )}
+                    <div className="font-semibold text-sm whitespace-nowrap">
+                      ₹{lineTotal.toFixed(2)}
+                    </div>
                   </div>
                 </div>
               );
@@ -343,11 +491,19 @@ export default function POSOrderView() {
             <div className="p-5 space-y-4 text-sm">
               {/* Shipping Address */}
               <div>
-                <h4 className="font-semibold text-base mb-2">Shipping Address</h4>
+                <h4 className="font-semibold text-base mb-2">
+                  Shipping Address
+                </h4>
                 <p>{order.address?.address_line1 || "-"}</p>
-                {order.address?.address_line2 && <p>{order.address.address_line2}</p>}
+                {order.address?.address_line2 && (
+                  <p>{order.address.address_line2}</p>
+                )}
                 <p>
-                  {[order.address?.city, order.address?.state, order.address?.pincode]
+                  {[
+                    order.address?.city,
+                    order.address?.state,
+                    order.address?.pincode,
+                  ]
                     .filter(Boolean)
                     .join(", ") || "-"}
                 </p>
@@ -398,7 +554,9 @@ export default function POSOrderView() {
                     <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
                       <div>
                         <span className="text-gray-500">Shipping Provider</span>
-                        <p className="font-medium">{record.shipping_provider || "-"}</p>
+                        <p className="font-medium">
+                          {record.shipping_provider || "-"}
+                        </p>
                       </div>
                       <div>
                         <span className="text-gray-500">Courier Partner</span>
@@ -410,19 +568,24 @@ export default function POSOrderView() {
                       </div>
                       <div>
                         <span className="text-gray-500">Shipping Charge</span>
-                        <p className="font-medium">₹{record.shipping_amount || 0}</p>
+                        <p className="font-medium">
+                          ₹{record.shipping_amount || 0}
+                        </p>
                       </div>
                       <div className="col-span-2">
                         <span className="text-gray-500">Date</span>
                         <p className="font-medium">
                           {record.created_at
-                            ? new Date(record.created_at).toLocaleString("en-IN", {
-                                day: "numeric",
-                                month: "short",
-                                year: "numeric",
-                                hour: "2-digit",
-                                minute: "2-digit",
-                              })
+                            ? new Date(record.created_at).toLocaleString(
+                                "en-IN",
+                                {
+                                  day: "numeric",
+                                  month: "short",
+                                  year: "numeric",
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                },
+                              )
                             : "-"}
                         </p>
                       </div>
@@ -448,7 +611,9 @@ export default function POSOrderView() {
                 <>
                   <hr />
                   <div>
-                    <h4 className="font-semibold text-base mb-1">Shipping Note</h4>
+                    <h4 className="font-semibold text-base mb-1">
+                      Shipping Note
+                    </h4>
                     <p className="text-gray-700">{order.shipping_note}</p>
                   </div>
                 </>

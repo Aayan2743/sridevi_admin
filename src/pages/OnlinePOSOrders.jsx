@@ -29,6 +29,7 @@ export default function OnlinePOSOrders() {
   const [sendingId, setSendingId] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
   const [cancellingId, setCancellingId] = useState(null);
+  const [rateLoadingId, setRateLoadingId] = useState(null);
   const [localSaving, setLocalSaving] = useState(false);
   const [shippingProcessing, setShippingProcessing] = useState(false);
 
@@ -401,6 +402,150 @@ export default function OnlinePOSOrders() {
     }
   };
 
+  /* ================= GET SHIPMOZO RATE ================= */
+  const getShipmozoRate = async (shippingId) => {
+    setRateLoadingId(shippingId);
+    try {
+      const res = await api.post(
+        `/admin-dashboard/shipmozo/rate/${shippingId}`,
+      );
+
+      const rates = res.data.data?.data ?? [];
+
+      if (rates.length === 0) {
+        Swal.fire({
+          icon: "info",
+          title: "No Rates Available",
+          text: "No shipping rates found for this order.",
+          confirmButtonText: "OK",
+        });
+        return;
+      }
+
+      const PER_PAGE = 5;
+      let currentPage = 1;
+      const totalPages = Math.ceil(rates.length / PER_PAGE);
+
+      const renderTable = (page) => {
+        const start = (page - 1) * PER_PAGE;
+        const end = start + PER_PAGE;
+        const pageRates = rates.slice(start, end);
+
+        const rows = pageRates
+          .map(
+            (r) => `
+            <tr class="${start % 2 === 0 ? "bg-white" : "bg-gray-50"}">
+              <td class="p-2 border-b text-xs">
+                <div class="flex items-center gap-2">
+                  ${r.image ? `<img src="${r.image}" alt="${r.name}" class="w-6 h-6 rounded object-contain" />` : ""}
+                  <span class="font-medium">${r.name || "-"}</span>
+                </div>
+              </td>
+              <td class="p-2 border-b text-xs text-center">${r.estimated_delivery || "-"}</td>
+              <td class="p-2 border-b text-xs text-right">₹${Number(r.shipping_charges || 0).toFixed(2)}</td>
+              <td class="p-2 border-b text-xs text-right">₹${Number(r.gst || 0).toFixed(2)}</td>
+              <td class="p-2 border-b text-xs text-right font-semibold">₹${Number(r.total_charges || 0).toFixed(2)}</td>
+              <td class="p-2 border-b text-xs text-center">${r.minimum_chargeable_weight || "-"}</td>
+              <td class="p-2 border-b text-xs text-center">
+                <button onclick="Swal.clickConfirm()" class="bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] px-2 py-1 rounded assign-btn" data-courier="${r.id}">
+                  Assign
+                </button>
+              </td>
+            </tr>
+          `,
+          )
+          .join("");
+
+        const pagination = `
+          <div class="flex justify-between items-center mt-3 text-xs">
+            <span class="text-gray-500">Page ${page} of ${totalPages}</span>
+            <div class="flex gap-2">
+              <button onclick="window.__swalPrevPage()" class="px-3 py-1 border rounded hover:bg-gray-100 ${page <= 1 ? "opacity-40 pointer-events-none" : ""}">Prev</button>
+              <button onclick="window.__swalNextPage()" class="px-3 py-1 border rounded hover:bg-gray-100 ${page >= totalPages ? "opacity-40 pointer-events-none" : ""}">Next</button>
+            </div>
+          </div>
+        `;
+
+        return `
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+              <thead>
+                <tr class="bg-gray-100">
+                  <th class="p-2 text-xs font-semibold border-b">Courier</th>
+                  <th class="p-2 text-xs font-semibold border-b text-center">Delivery</th>
+                  <th class="p-2 text-xs font-semibold border-b text-right">Shipping</th>
+                  <th class="p-2 text-xs font-semibold border-b text-right">GST</th>
+                  <th class="p-2 text-xs font-semibold border-b text-right">Total</th>
+                  <th class="p-2 text-xs font-semibold border-b text-center">Min Weight</th>
+                  <th class="p-2 text-xs font-semibold border-b text-center">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${rows}
+              </tbody>
+            </table>
+            ${totalPages > 1 ? pagination : ""}
+          </div>
+        `;
+      };
+
+      const swal = Swal.fire({
+        icon: "success",
+        title: `Shipping Rates (${rates.length})`,
+        width: 950,
+        html: renderTable(currentPage),
+        confirmButtonText: "Close",
+        didOpen: () => {
+          document.querySelectorAll(".assign-btn").forEach((btn) => {
+            btn.addEventListener("click", async () => {
+              const courierId = btn.dataset.courier;
+
+              await assignShipmozoCourier(shippingId, courierId);
+
+              Swal.close();
+            });
+          });
+        },
+        willClose: () => {
+          delete window.__swalPrevPage;
+          delete window.__swalNextPage;
+        },
+      });
+    } catch (err) {
+      Swal.fire({
+        icon: "error",
+        title: "Rate Fetch Failed",
+        text: err.response?.data?.message || "Could not fetch shipping rate",
+      });
+    } finally {
+      setRateLoadingId(null);
+    }
+  };
+
+  const assignShipmozoCourier = async (shippingId, courierId) => {
+    try {
+      const res = await api.post(
+        `/admin-dashboard/shipmozo/assign-courier/${shippingId}`,
+        {
+          courier_id: courierId,
+        },
+      );
+
+      Swal.fire({
+        icon: "success",
+        title: "Courier Assigned",
+        text: res.data.message,
+      });
+
+      loadOrders();
+    } catch (err) {
+      Swal.fire({
+        icon: "error",
+        title: "Assignment Failed",
+        text: err.response?.data?.message || "Failed to assign courier",
+      });
+    }
+  };
   /* ================= UI ================= */
   return (
     <div className="space-y-4">
@@ -514,6 +659,19 @@ export default function OnlinePOSOrders() {
                         </div>
                       </>
                     )}
+
+                    {o.shipping?.shipment_status === "booked" &&
+                      o.shipping?.shipping_provider === "shipmozo" && (
+                        <button
+                          onClick={() => getShipmozoRate(o.shipping.id)}
+                          disabled={rateLoadingId === o.shipping.id}
+                          className="w-full bg-purple-600 text-white text-[10px] px-1.5 py-1 rounded disabled:opacity-50 mt-1"
+                        >
+                          {rateLoadingId === o.shipping.id
+                            ? "Fetching..."
+                            : "Get Rate"}
+                        </button>
+                      )}
                   </td>
                   <td className="p-3">
                     <span
