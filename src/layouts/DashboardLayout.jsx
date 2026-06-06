@@ -21,6 +21,10 @@ export default function DashboardLayout() {
         { label: "All Products", path: "/products" },
         // { label: "POS Products", path: "/pos/products" },
         { label: "Bulk Images", path: "/bulk-variant-images" },
+        {
+          label: "Bulk Images Store",
+          path: "/bulk-variant-images-for-store-products",
+        },
         { label: "Categories", path: "/add-categories" },
         { label: "Sort Category", path: "/category-sorter" },
       ],

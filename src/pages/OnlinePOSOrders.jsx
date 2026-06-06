@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
 import api from "../api/axios";
 import ShippingProviderModal from "./ShippingProviderModal";
+import { useAuth } from "../auth/AuthContext";
+import AccessDenied from "../pages/components/AccessDenied";
 
 const PLACEHOLDER_IMG =
   "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40' fill='%23e5e7eb'%3E%3Crect width='40' height='40'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dy='.3em' font-size='16' fill='%239ca3af'%3E📦%3C/text%3E%3C/svg%3E";
@@ -11,6 +13,8 @@ const STATUS_OPTIONS = ["confirmed", "packing", "shipping", "delivered"];
 
 export default function OnlinePOSOrders() {
   const navigate = useNavigate();
+
+  const { can } = useAuth();
 
   /* ================= STATE ================= */
   const [orders, setOrders] = useState([]);
@@ -547,6 +551,11 @@ export default function OnlinePOSOrders() {
     }
   };
   /* ================= UI ================= */
+
+  if (!can("online_pos_orders.view")) {
+    return <AccessDenied />;
+  }
+
   return (
     <div className="space-y-4">
       <h1 className="text-2xl font-semibold">Online POS Orders</h1>
@@ -581,7 +590,9 @@ export default function OnlinePOSOrders() {
                 <th className="p-3">Products</th>
                 <th className="p-3 text-right">Total</th>
                 <th className="p-3">Payment</th>
+
                 <th className="p-3">Shipping</th>
+
                 <th className="p-3">Status</th>
                 <th className="p-3">Date</th>
                 <th className="p-3">Actions</th>
@@ -752,37 +763,40 @@ export default function OnlinePOSOrders() {
                       </>
                     )}
 
-                    {(!o.shipping ||
-                      o.shipping.shipment_status !== "booked") && (
+                    {(!o.shipping || o.shipping.shipment_status !== "booked") &&
+                      can("online_pos_orders.shipping") && (
+                        <button
+                          onClick={() => {
+                            setSelectedOrderId(o.id);
+                            setShippingModal(true);
+                          }}
+                          className="block w-full bg-blue-600 text-white text-xs px-2 py-1 rounded"
+                        >
+                          Shipping
+                        </button>
+                      )}
+
+                    {o.shipping?.shipment_status === "booked" &&
+                      can("online_pos_orders.cancel shipping") && (
+                        <button
+                          onClick={() => cancelShipment(o.shipping.id)}
+                          disabled={cancellingId === o.shipping.id}
+                          className="block w-full bg-red-600 text-white text-xs px-2 py-1 rounded disabled:opacity-50"
+                        >
+                          {cancellingId === o.shipping.id
+                            ? "Cancelling..."
+                            : "Cancel Shipment"}
+                        </button>
+                      )}
+
+                    {can("online_pos_orders.view order details") && (
                       <button
-                        onClick={() => {
-                          setSelectedOrderId(o.id);
-                          setShippingModal(true);
-                        }}
-                        className="block w-full bg-blue-600 text-white text-xs px-2 py-1 rounded"
+                        onClick={() => navigate(`/pos/orders/${o.id}`)}
+                        className="block text-xs text-indigo-600 text-center"
                       >
-                        Shipping
+                        View
                       </button>
                     )}
-
-                    {o.shipping?.shipment_status === "booked" && (
-                      <button
-                        onClick={() => cancelShipment(o.shipping.id)}
-                        disabled={cancellingId === o.shipping.id}
-                        className="block w-full bg-red-600 text-white text-xs px-2 py-1 rounded disabled:opacity-50"
-                      >
-                        {cancellingId === o.shipping.id
-                          ? "Cancelling..."
-                          : "Cancel Shipment"}
-                      </button>
-                    )}
-
-                    <button
-                      onClick={() => navigate(`/pos/orders/${o.id}`)}
-                      className="block text-xs text-indigo-600 text-center"
-                    >
-                      View
-                    </button>
                   </td>
                 </tr>
               ))}

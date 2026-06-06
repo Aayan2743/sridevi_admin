@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Swal from "sweetalert2";
 import api from "../api/axios";
+import { useAuth } from "../auth/AuthContext";
+import AccessDenied from "../pages/components/AccessDenied";
 
 /* ================= ROW ================= */
 function Row({ label, value }) {
@@ -16,6 +18,7 @@ function Row({ label, value }) {
 export default function POSOrderView() {
   const navigate = useNavigate();
   const { id } = useParams();
+  const { can } = useAuth();
 
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -179,6 +182,10 @@ export default function POSOrderView() {
 
   if (loading) return <div className="p-6">Loading order...</div>;
   if (!order) return <div className="p-6">Order not found</div>;
+
+  if (!can("online_pos_orders.view order details")) {
+    return <AccessDenied />;
+  }
 
   return (
     <div className="p-6 bg-gray-100 min-h-screen">

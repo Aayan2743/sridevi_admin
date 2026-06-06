@@ -71,6 +71,7 @@ import ProductSectionAssign from "./pages/settings/components/ProductSectionAssi
 import ComingSoon from "./pages/ComingSoon";
 import SectionManager from "./pages/SectionManager";
 import PosProducts from "./pages/PosProducts";
+import BulkStoreVariantImages from "./pages/BulkStoreVariantImages";
 
 function AppRoutes() {
   const { loading } = useAuth();
@@ -171,9 +172,19 @@ function AppRoutes() {
           path="/bulk-variant-images"
           element={
             // <BulkVariantImages />
-            <PrivateRoute permission="varients.view">
-              <BulkVariantImages />
-            </PrivateRoute>
+            // <PrivateRoute permission="varients.view">
+            <BulkVariantImages />
+            // </PrivateRoute>
+          }
+        />
+
+        <Route
+          path="/bulk-variant-images-for-store-products"
+          element={
+            // <BulkVariantImages />
+            // <PrivateRoute permission="varients.view">
+            <BulkStoreVariantImages />
+            // </PrivateRoute>
           }
         />
 
@@ -218,7 +229,7 @@ function AppRoutes() {
         <Route
           path="/online-pos-order"
           element={
-            <PrivateRoute permission="pos_orders.view">
+            <PrivateRoute permission="online_pos_orders.view order details">
               <OnlinePOSOrders />
             </PrivateRoute>
           }
