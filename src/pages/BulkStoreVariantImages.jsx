@@ -171,7 +171,7 @@ export default function BulkStoreVariantImages() {
     try {
       setLoading(true);
 
-      const res = await api.get("/admin-dashboard/product-variants", {
+      const res = await api.get("/admin-dashboard/store-product-variants", {
         params: { search: query, page, perPage },
       });
 
@@ -224,28 +224,60 @@ export default function BulkStoreVariantImages() {
 
   /* ================= DELETE ================= */
 
-  const deleteVariantImage = async (id) => {
+  // const deleteVariantImage = async (id) => {
+  //   alert(id);
+  //   const confirmed = await confirmAction("Delete variant image?");
+  //   if (!confirmed) return;
+
+  //   try {
+  //     await api.delete(`/admin-dashboard/delete-store-variant-image/${id}`);
+  //     showSuccessToast("Variant image deleted");
+  //     fetchVariants();
+  //   } catch {
+  //     showErrorToast("Delete failed");
+  //   }
+  // };
+
+  const deleteVariantImage = async (variantId, imagePath) => {
     const confirmed = await confirmAction("Delete variant image?");
     if (!confirmed) return;
 
     try {
-      await api.delete(`/admin-dashboard/delete-variant-image/${id}`);
+      await api.delete(
+        `/admin-dashboard/delete-store-variant-image/${variantId}`,
+        {
+          data: {
+            image_path: imagePath,
+          },
+        },
+      );
+
       showSuccessToast("Variant image deleted");
       fetchVariants();
-    } catch {
+    } catch (error) {
+      console.error(error);
       showErrorToast("Delete failed");
     }
   };
 
-  const deleteProductImage = async (id) => {
+  const deleteProductImage = async (productId, imagePath) => {
     const confirmed = await confirmAction("Delete product image?");
     if (!confirmed) return;
 
     try {
-      await api.delete(`/admin-dashboard/delete-product-image/${id}`);
+      await api.delete(
+        `/admin-dashboard/delete-store-product-image/${productId}`,
+        {
+          data: {
+            image_path: imagePath,
+          },
+        },
+      );
+
       showSuccessToast("Product image deleted");
       fetchVariants();
-    } catch {
+    } catch (error) {
+      console.error(error);
       showErrorToast("Delete failed");
     }
   };
@@ -285,7 +317,7 @@ export default function BulkStoreVariantImages() {
       setUploading(true);
 
       const res = await api.post(
-        "/admin-dashboard/bulk-product-variant-images",
+        "/admin-dashboard/bulk-store-product-variant-images",
         formData,
       );
 
@@ -360,7 +392,7 @@ export default function BulkStoreVariantImages() {
     }
   };
 
-  if (!can("varients.view")) {
+  if (!can("bulk image upload store.view")) {
     return <AccessDenied />;
   }
 
@@ -370,7 +402,7 @@ export default function BulkStoreVariantImages() {
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <h1 className="text-2xl font-semibold text-slate-900">
-              Product & Variant Image Manager
+              Store Product & Variant Image Manager
             </h1>
             <p className="mt-1 text-sm text-slate-500">
               Search faster, upload images in bulk, and print barcodes with
@@ -443,13 +475,11 @@ export default function BulkStoreVariantImages() {
               <tr>
                 <th className="px-4 py-3 text-left">#</th>
                 <th className="px-4 py-3 text-left">Product</th>
-                {can("varients.is_returnable") && (
-                  <th className="px-4 py-3 text-center">Returnable</th>
-                )}
+
                 <th className="px-4 py-3 text-left">Variant</th>
                 <th className="px-4 py-3 text-left">SKU</th>
                 <th className="px-4 py-3 text-left">Qty</th>
-                <th className="px-4 py-3 text-left">Barcodes</th>
+                {/* <th className="px-4 py-3 text-left">Barcodes</th> */}
                 <th className="px-4 py-3 text-left">Product Images</th>
                 <th className="px-4 py-3 text-left">Variant Images</th>
                 <th className="px-4 py-3 text-left">Upload</th>
@@ -497,23 +527,7 @@ export default function BulkStoreVariantImages() {
                       </p>
                     </td>
 
-                    {can("varients.is_returnable") && (
-                      <td className="px-4 py-3 text-center">
-                        <label className="inline-flex cursor-pointer items-center">
-                          <input
-                            type="checkbox"
-                            className="sr-only peer"
-                            checked={v.is_returnable === true}
-                            onChange={() => handleToggleReturn(v)}
-                          />
-                          <span className="relative h-6 w-11 rounded-full bg-red-400 transition-colors duration-200 peer-checked:bg-green-500 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:shadow-sm after:transition-transform after:duration-200 peer-checked:after:translate-x-5" />
-                        </label>
-                      </td>
-                    )}
-
-                    <td className="px-4 py-3">
-                      {v.variation_values?.join(" / ") || "-"}
-                    </td>
+                    <td className="px-4 py-3">{v.label || "-"}</td>
 
                     <td className="px-4 py-3 font-mono text-xs text-slate-700">
                       {v.sku}
@@ -530,7 +544,7 @@ export default function BulkStoreVariantImages() {
                       </span>
                     </td>
 
-                    <td className="px-4 py-3">
+                    {/* <td className="px-4 py-3">
                       <div className="flex flex-wrap gap-2">
                         {can("varients.barcode_view") && (
                           <button
@@ -550,21 +564,24 @@ export default function BulkStoreVariantImages() {
                           </button>
                         )}
                       </div>
-                    </td>
+                    </td> */}
 
                     {/* PRODUCT IMAGES */}
 
                     <td className="px-4 py-3">
                       <div className="flex flex-wrap gap-2">
-                        {v.product_images?.map((img) => (
-                          <div key={img.id} className="relative">
+                        {v.product_images?.map((img, index) => (
+                          <div key={index} className="relative">
                             <img
                               src={img.url}
                               className="h-12 w-12 rounded-lg border border-slate-200 object-cover shadow-sm"
                             />
+
                             {can("varients.delete_product_image") && (
                               <button
-                                onClick={() => deleteProductImage(img.id)}
+                                onClick={() =>
+                                  deleteProductImage(v.product_id, img.path)
+                                }
                                 className="absolute -right-2 -top-2 rounded bg-red-500 px-1 text-xs text-white"
                               >
                                 ✕
@@ -591,15 +608,19 @@ export default function BulkStoreVariantImages() {
 
                     <td className="px-4 py-3">
                       <div className="flex flex-wrap gap-2">
-                        {v.variant_images?.map((img) => (
-                          <div key={img.id} className="relative">
+                        {v.variant_images?.map((img, index) => (
+                          <div key={index} className="relative">
                             <img
                               src={img.url}
+                              alt=""
                               className="h-12 w-12 rounded-lg border border-slate-200 object-cover shadow-sm"
                             />
+
                             {can("varients.delete_varient_image") && (
                               <button
-                                onClick={() => deleteVariantImage(img.id)}
+                                onClick={() =>
+                                  deleteVariantImage(v.id, img.path)
+                                }
                                 className="absolute -right-2 -top-2 rounded bg-red-500 px-1 text-xs text-white"
                               >
                                 ✕
@@ -615,6 +636,7 @@ export default function BulkStoreVariantImages() {
                             <img
                               key={i}
                               src={p}
+                              alt=""
                               className="h-12 w-12 rounded-lg border border-indigo-200 ring-2 ring-indigo-100"
                             />
                           ))}

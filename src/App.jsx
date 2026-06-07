@@ -34,6 +34,14 @@ import ProfileSettings from "./pages/settings/components/ProfileSettings";
 import LogoSettings from "./pages/settings/components/LogoSettings";
 
 import BulkVariantImages from "./pages/BulkVariantImages";
+import OrdersDashboard from "./pages/dashboards/OrdersDashboard";
+import ProductsDashboard from "./pages/dashboards/ProductsDashboard";
+import CustomersDashboard from "./pages/dashboards/CustomersDashboard";
+import POSDashboard from "./pages/dashboards/POSDashboard";
+import StaffDashboard from "./pages/dashboards/StaffDashboard";
+import RevenueDashboard from "./pages/dashboards/RevenueDashboard";
+import WhatsAppDashboard from "./pages/dashboards/WhatsAppDashboard";
+import InventoryDashboard from "./pages/dashboards/InventoryDashboard";
 import BulkAddVariation from "./pages/BulkAddVariation";
 import WhatsappChat from "./pages/WhatsappChat";
 import CategorySorter from "./pos/components/CategorySorter";
@@ -137,6 +145,72 @@ function AppRoutes() {
           }
         />
 
+        {/* ================= COMPATIBILITY DASHBOARDS ================= */}
+        <Route
+          path="/dashboard/orders"
+          element={
+            <PrivateRoute permission="dashboard.orders">
+              <OrdersDashboard />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/dashboard/products"
+          element={
+            <PrivateRoute permission="dashboard.products">
+              <ProductsDashboard />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/dashboard/customers"
+          element={
+            <PrivateRoute permission="dashboard.customers">
+              <CustomersDashboard />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/dashboard/pos"
+          element={
+            <PrivateRoute permission="dashboard.pos">
+              <POSDashboard />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/dashboard/staff"
+          element={
+            <PrivateRoute permission="dashboard.staff">
+              <StaffDashboard />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/dashboard/revenue"
+          element={
+            <PrivateRoute permission="dashboard.revenue">
+              <RevenueDashboard />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/dashboard/whatsapp"
+          element={
+            <PrivateRoute permission="dashboard.whatsapp">
+              <WhatsAppDashboard />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/dashboard/inventory"
+          element={
+            <PrivateRoute permission="dashboard.inventory">
+              <InventoryDashboard />
+            </PrivateRoute>
+          }
+        />
+
         {/* ================= PRODUCTS ================= */}
         <Route
           path="/products"
@@ -172,9 +246,9 @@ function AppRoutes() {
           path="/bulk-variant-images"
           element={
             // <BulkVariantImages />
-            // <PrivateRoute permission="varients.view">
-            <BulkVariantImages />
-            // </PrivateRoute>
+            <PrivateRoute permission="varients.view">
+              <BulkVariantImages />
+            </PrivateRoute>
           }
         />
 
@@ -182,9 +256,9 @@ function AppRoutes() {
           path="/bulk-variant-images-for-store-products"
           element={
             // <BulkVariantImages />
-            // <PrivateRoute permission="varients.view">
-            <BulkStoreVariantImages />
-            // </PrivateRoute>
+            <PrivateRoute permission="varients.view">
+              <BulkStoreVariantImages />
+            </PrivateRoute>
           }
         />
 
@@ -376,7 +450,7 @@ function AppRoutes() {
           <Route
             path="social-media"
             element={
-              <PrivateRoute permission="settings.social_media">
+              <PrivateRoute permission="settings.socialmedia">
                 <SocialMediaSettings />
               </PrivateRoute>
             }
@@ -385,7 +459,7 @@ function AppRoutes() {
           <Route
             path="payment-gateway"
             element={
-              <PrivateRoute permission="settings.payment_gateway">
+              <PrivateRoute permission="settings.paymentgateway">
                 <PaymentGatewaySettings />
               </PrivateRoute>
             }
@@ -394,7 +468,7 @@ function AppRoutes() {
           <Route
             path="variation-settings"
             element={
-              <PrivateRoute permission="settings.variation">
+              <PrivateRoute permission="settings.variationsettings">
                 <VariationSettings />
               </PrivateRoute>
             }

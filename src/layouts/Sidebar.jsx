@@ -9,6 +9,12 @@ import {
   Package,
   Settings,
   Users,
+  ChevronDown,
+  ChevronRight,
+  DollarSign,
+  MessageSquare,
+  ClipboardList,
+  Warehouse,
 } from "lucide-react";
 import { useProfile } from "../context/ProfileContext";
 import { useLogoSettings } from "../context/LogoSettingsContext";
@@ -86,12 +92,16 @@ export default function Sidebar({ open, setOpen, logout }) {
         {/* MENU */}
         <nav className="flex-1 overflow-y-auto p-2 space-y-1">
           <Item to="/dashboard" icon={Home} label="Dashboard" />
-
-          {/* {can("view_products") &&  */}
+          <Item to="/dashboard/orders" icon={ClipboardList} label="Orders DB" />
+          <Item to="/dashboard/products" icon={Package} label="Products DB" />
+          <Item to="/dashboard/customers" icon={Users} label="Customers DB" />
+          <Item to="/dashboard/pos" icon={ShoppingCart} label="POS DB" />
+          <Item to="/dashboard/staff" icon={Users} label="Staff DB" />
+          <Item to="/dashboard/revenue" icon={DollarSign} label="Revenue DB" />
+          <Item to="/dashboard/whatsapp" icon={MessageSquare} label="WhatsApp DB" />
+          <Item to="/dashboard/inventory" icon={Warehouse} label="Inventory DB" />
 
           <Item to="/products" icon={Box} label="Products" />
-
-          {/* }     */}
 
           <Item
             to="/bulk-variant-images"
@@ -110,12 +120,6 @@ export default function Sidebar({ open, setOpen, logout }) {
           <Item to="/staff-attendance" icon={Users} label="Staff Attendance" />
 
           <Item to="/roles" icon={Settings} label="Roles" />
-
-          {/* <Item
-                    to="/Add-Permissions"
-                    icon={Settings}
-                    label="Add Permissions"
-                  /> */}
 
           <Item to="/assign-role" icon={Settings} label="Assign Role" />
 

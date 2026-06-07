@@ -1,11 +1,7 @@
 import { useEffect, useState } from "react";
 import api from "../api/axios";
 import useDynamicTitle from "../hooks/useDynamicTitle";
-import {
-  confirmAction,
-  showErrorToast,
-  showSuccessToast,
-} from "../utils/swal";
+import { confirmAction, showErrorToast, showSuccessToast } from "../utils/swal";
 
 import { useAuth } from "../auth/AuthContext";
 import AccessDenied from "./components/AccessDenied";
@@ -14,7 +10,6 @@ export default function BulkVariantImages() {
   useDynamicTitle("Product & Variant Images");
 
   const { can, permissions } = useAuth();
-
 
   const [search, setSearch] = useState("");
   const [query, setQuery] = useState("");
@@ -39,7 +34,8 @@ export default function BulkVariantImages() {
 
   const [selectedBarcodes, setSelectedBarcodes] = useState([]);
   const hasPendingUploads =
-    Object.keys(variantImages).length > 0 || Object.keys(productImages).length > 0;
+    Object.keys(variantImages).length > 0 ||
+    Object.keys(productImages).length > 0;
   const selectedUploadCount =
     Object.values(variantImages).reduce((sum, files) => sum + files.length, 0) +
     Object.values(productImages).reduce((sum, files) => sum + files.length, 0);
@@ -51,18 +47,12 @@ export default function BulkVariantImages() {
     setBarcodePopup(true);
   };
 
-
-
-
-
-
   const closeBarcodePopup = () => {
     setBarcodePopup(false);
     setSelectedBarcodes([]);
   };
 
   const printSingleBarcode = async (barcode) => {
-
     console.log(barcode);
     const res = await api.get(
       `/admin-dashboard/product/print-single-barcode/${barcode.barcode}`,
@@ -72,13 +62,11 @@ export default function BulkVariantImages() {
     sendToPrinter(res.data);
   };
 
-
-
   const printSingleBarcodeOneByOne = async (barcode) => {
     try {
       const res = await api.get(
         `/admin-dashboard/product/print-single-barcode/${barcode}`,
-        { responseType: "text" }
+        { responseType: "text" },
       );
 
       // ✅ First print
@@ -90,28 +78,23 @@ export default function BulkVariantImages() {
           prevList.map((item) =>
             item.barcode === barcode
               ? {
-                ...item,
-                print_count: (parseInt(item.print_count) || 0) + 1,
-              }
-              : item
-          )
+                  ...item,
+                  print_count: (parseInt(item.print_count) || 0) + 1,
+                }
+              : item,
+          ),
         );
       }
-
     } catch (err) {
       console.error(err);
     }
   };
 
-
-
-
-
   const toggleBarcode = (barcode) => {
     setSelectedBarcodes((prev) =>
       prev.includes(barcode)
         ? prev.filter((b) => b !== barcode)
-        : [...prev, barcode]
+        : [...prev, barcode],
     );
   };
 
@@ -132,7 +115,7 @@ export default function BulkVariantImages() {
     try {
       const res = await api.get(
         `/admin-dashboard/product/print-barcode/${variantId}`,
-        { responseType: "text" }
+        { responseType: "text" },
       );
 
       const tspl = res.data;
@@ -146,14 +129,13 @@ export default function BulkVariantImages() {
           prevList.map((item) =>
             item.variant_id === variantId
               ? {
-                ...item,
-                print_count: (parseInt(item.print_count) || 0) + 1,
-              }
-              : item
-          )
+                  ...item,
+                  print_count: (parseInt(item.print_count) || 0) + 1,
+                }
+              : item,
+          ),
         );
       }
-
     } catch (err) {
       console.error("Print error:", err);
     }
@@ -323,7 +305,6 @@ export default function BulkVariantImages() {
     }
   };
 
-
   const printSelectedBarcodes = async () => {
     if (selectedBarcodes.length === 0) {
       showErrorToast("Select at least one barcode");
@@ -334,46 +315,44 @@ export default function BulkVariantImages() {
       for (let barcode of selectedBarcodes) {
         const res = await api.get(
           `/admin-dashboard/product/print-single-barcode/${barcode}`,
-          { responseType: "text" }
+          { responseType: "text" },
         );
 
         await sendToPrinter(res.data);
       }
 
       // 🔥 update UI count
-      setBarcodeList(prev =>
-        prev.map(b =>
+      setBarcodeList((prev) =>
+        prev.map((b) =>
           selectedBarcodes.includes(b.barcode)
             ? { ...b, print_count: b.print_count + 1 }
-            : b
-        )
+            : b,
+        ),
       );
 
       setSelectedBarcodes([]);
-
     } catch (err) {
       console.error(err);
       showErrorToast("Bulk print failed");
     }
   };
 
-
-
   const handleToggleReturn = async (variant) => {
     try {
       const newValue = !variant.is_returnable;
 
-      await api.post(`/admin-dashboard/product/toggle-returnable/${variant.id}`, {
-        is_returnable: newValue ? 1 : 0,
-      });
+      await api.post(
+        `/admin-dashboard/product/toggle-returnable/${variant.id}`,
+        {
+          is_returnable: newValue ? 1 : 0,
+        },
+      );
 
       // ✅ update UI instantly
       setVariants((prev) =>
         prev.map((v) =>
-          v.id === variant.id
-            ? { ...v, is_returnable: newValue }
-            : v
-        )
+          v.id === variant.id ? { ...v, is_returnable: newValue } : v,
+        ),
       );
     } catch (err) {
       console.error(err);
@@ -381,11 +360,8 @@ export default function BulkVariantImages() {
     }
   };
 
-
   if (!can("varients.view")) {
-    return (
-      <AccessDenied />
-    );
+    return <AccessDenied />;
   }
 
   return (
@@ -393,9 +369,12 @@ export default function BulkVariantImages() {
       <div className="rounded-2xl border border-slate-200 bg-gradient-to-r from-white to-indigo-50/40 p-5 shadow-sm">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <h1 className="text-2xl font-semibold text-slate-900">Product & Variant Image Manager</h1>
+            <h1 className="text-2xl font-semibold text-slate-900">
+              Online Product & Variant Image Manager
+            </h1>
             <p className="mt-1 text-sm text-slate-500">
-              Search faster, upload images in bulk, and print barcodes with cleaner controls.
+              Search faster, upload images in bulk, and print barcodes with
+              cleaner controls.
             </p>
             <div className="mt-3 flex flex-wrap gap-2">
               <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-600">
@@ -461,217 +440,232 @@ export default function BulkVariantImages() {
         <div className="overflow-x-auto">
           <table className="min-w-full text-sm">
             <thead className="bg-slate-100/80 text-slate-700">
-            <tr>
-              <th className="px-4 py-3 text-left">#</th>
-              <th className="px-4 py-3 text-left">Product</th>
-              {can("varients.is_returnable") && (
-                <th className="px-4 py-3 text-center">Returnable</th>
-              )}
-              <th className="px-4 py-3 text-left">Variant</th>
-              <th className="px-4 py-3 text-left">SKU</th>
-              <th className="px-4 py-3 text-left">Qty</th>
-              <th className="px-4 py-3 text-left">Barcodes</th>
-              <th className="px-4 py-3 text-left">Product Images</th>
-              <th className="px-4 py-3 text-left">Variant Images</th>
-              <th className="px-4 py-3 text-left">Upload</th>
-            </tr>
+              <tr>
+                <th className="px-4 py-3 text-left">#</th>
+                <th className="px-4 py-3 text-left">Product</th>
+                {can("varients.is_returnable") && (
+                  <th className="px-4 py-3 text-center">Returnable</th>
+                )}
+                <th className="px-4 py-3 text-left">Variant</th>
+                <th className="px-4 py-3 text-left">SKU</th>
+                <th className="px-4 py-3 text-left">Qty</th>
+                {/* <th className="px-4 py-3 text-left">Barcodes</th> */}
+                <th className="px-4 py-3 text-left">Product Images</th>
+                <th className="px-4 py-3 text-left">Variant Images</th>
+                <th className="px-4 py-3 text-left">Upload</th>
+              </tr>
             </thead>
 
             <tbody>
-            {loading && (
-              <tr>
-                <td colSpan="10" className="py-10 text-center text-slate-500">
-                  Loading...
-                </td>
-              </tr>
-            )}
-
-            {!loading && variants.length === 0 && (
-              <tr>
-                <td colSpan="10" className="py-12 text-center">
-                  <p className="text-sm font-medium text-slate-700">No variants found</p>
-                  <p className="mt-1 text-xs text-slate-500">
-                    Try a different product name or SKU to continue.
-                  </p>
-                </td>
-              </tr>
-            )}
-
-            {!loading &&
-              variants.map((v, i) => (
-                <tr key={v.id} className="border-t border-slate-100 align-top transition hover:bg-slate-50/60">
-                  <td className="px-4 py-3">{(page - 1) * perPage + i + 1}</td>
-
-                  <td className="px-4 py-3">
-                    <p className="font-medium text-slate-800">{v.product_name}</p>
-                    <p className="text-xs text-slate-500">ID: {v.product_id}</p>
-                  </td>
-
-                  {can("varients.is_returnable") && (
-                  <td className="px-4 py-3 text-center">
-                    <label className="inline-flex cursor-pointer items-center">
-                      <input
-                        type="checkbox"
-                        className="sr-only peer"
-                        checked={v.is_returnable === true}
-                        onChange={() => handleToggleReturn(v)}
-                      />
-                      <span className="relative h-6 w-11 rounded-full bg-red-400 transition-colors duration-200 peer-checked:bg-green-500 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:shadow-sm after:transition-transform after:duration-200 peer-checked:after:translate-x-5" />
-                    </label>
-                  </td>
-                  )}
-
-                  <td className="px-4 py-3">
-                    {v.variation_values?.join(" / ") || "-"}
-                  </td>
-
-                  <td className="px-4 py-3 font-mono text-xs text-slate-700">{v.sku}</td>
-                  <td className="px-4 py-3">
-                    <span
-                      className={`rounded-full px-2 py-1 text-xs font-semibold ${
-                        Number(v.qty) > 0
-                          ? "bg-emerald-50 text-emerald-700"
-                          : "bg-rose-50 text-rose-700"
-                      }`}
-                    >
-                      {v.qty ?? "-"}
-                    </span>
-                  </td>
-
-                  <td className="px-4 py-3">
-                    <div className="flex flex-wrap gap-2">
-                      {can("varients.barcode_view") && (
-                        <button
-                          onClick={() => openBarcodePopup(v)}
-                          className="rounded-lg bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-700 transition hover:bg-indigo-100"
-                        >
-                          View
-                        </button>
-                      )}
-
-                      {can("varients.barcode_print") && (
-                        <button
-                          onClick={() => printBarcode(v.id)}
-                          className="rounded-lg bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700 transition hover:bg-emerald-100"
-                        >
-                          Print
-                        </button>
-                      )}
-                    </div>
-                  </td>
-
-                  {/* PRODUCT IMAGES */}
-
-                  <td className="px-4 py-3">
-                    <div className="flex flex-wrap gap-2">
-                      {v.product_images?.map((img) => (
-                        <div key={img.id} className="relative">
-                          <img
-                            src={img.url}
-                              className="h-12 w-12 rounded-lg border border-slate-200 object-cover shadow-sm"
-                          />
-                          {can("varients.delete_product_image") && (
-                            <button
-                              onClick={() => deleteProductImage(img.id)}
-                              className="absolute -right-2 -top-2 rounded bg-red-500 px-1 text-xs text-white"
-                            >
-                              ✕
-                            </button>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-
-                    {previewProductImages[v.product_id] && (
-                      <div className="mt-2 flex gap-2">
-                        {previewProductImages[v.product_id].map((p, i) => (
-                          <img
-                            key={i}
-                            src={p}
-                            className="h-12 w-12 rounded-lg border border-indigo-200 ring-2 ring-indigo-100"
-                          />
-                        ))}
-                      </div>
-                    )}
-                  </td>
-
-                  {/* VARIANT IMAGES */}
-
-                  <td className="px-4 py-3">
-                    <div className="flex flex-wrap gap-2">
-                      {v.variant_images?.map((img) => (
-                        <div key={img.id} className="relative">
-                          <img
-                            src={img.url}
-                              className="h-12 w-12 rounded-lg border border-slate-200 object-cover shadow-sm"
-                          />
-                          {can("varients.delete_varient_image") && (
-                            <button
-                              onClick={() => deleteVariantImage(img.id)}
-                              className="absolute -right-2 -top-2 rounded bg-red-500 px-1 text-xs text-white"
-                            >
-                              ✕
-                            </button>
-                          )}
-
-                        </div>
-                      ))}
-                    </div>
-
-                    {previewVariantImages[v.id] && (
-                      <div className="mt-2 flex gap-2">
-                        {previewVariantImages[v.id].map((p, i) => (
-                          <img
-                            key={i}
-                            src={p}
-                            className="h-12 w-12 rounded-lg border border-indigo-200 ring-2 ring-indigo-100"
-                          />
-                        ))}
-                      </div>
-                    )}
-                  </td>
-
-                  <td className="px-4 py-3">
-                    <div className="flex flex-col gap-2">
-                      <label className="flex cursor-pointer items-center justify-center rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-100">
-                        Add Product Images
-                        <input
-                          type="file"
-                          multiple
-                          hidden
-                          onChange={(e) =>
-                            handleProductImageChange(v.product_id, e.target.files)
-                          }
-                        />
-                      </label>
-
-                      {productImages[v.product_id] && (
-                        <span className="text-xs text-slate-500">
-                          {productImages[v.product_id].length} selected
-                        </span>
-                      )}
-
-                      <label className="flex cursor-pointer items-center justify-center rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-medium text-indigo-700 transition hover:bg-indigo-100">
-                        Add Variant Images
-                        <input
-                          type="file"
-                          multiple
-                          hidden
-                          onChange={(e) =>
-                            handleVariantImageChange(v.id, e.target.files)
-                          }
-                        />
-                      </label>
-
-                      {variantImages[v.id] && (
-                        <span className="text-xs text-slate-500">
-                          {variantImages[v.id].length} selected
-                        </span>
-                      )}
-                    </div>
+              {loading && (
+                <tr>
+                  <td colSpan="10" className="py-10 text-center text-slate-500">
+                    Loading...
                   </td>
                 </tr>
-              ))}
+              )}
+
+              {!loading && variants.length === 0 && (
+                <tr>
+                  <td colSpan="10" className="py-12 text-center">
+                    <p className="text-sm font-medium text-slate-700">
+                      No variants found
+                    </p>
+                    <p className="mt-1 text-xs text-slate-500">
+                      Try a different product name or SKU to continue.
+                    </p>
+                  </td>
+                </tr>
+              )}
+
+              {!loading &&
+                variants.map((v, i) => (
+                  <tr
+                    key={v.id}
+                    className="border-t border-slate-100 align-top transition hover:bg-slate-50/60"
+                  >
+                    <td className="px-4 py-3">
+                      {(page - 1) * perPage + i + 1}
+                    </td>
+
+                    <td className="px-4 py-3">
+                      <p className="font-medium text-slate-800">
+                        {v.product_name}
+                      </p>
+                      <p className="text-xs text-slate-500">
+                        ID: {v.product_id}
+                      </p>
+                    </td>
+
+                    {can("varients.is_returnable") && (
+                      <td className="px-4 py-3 text-center">
+                        <label className="inline-flex cursor-pointer items-center">
+                          <input
+                            type="checkbox"
+                            className="sr-only peer"
+                            checked={v.is_returnable === true}
+                            onChange={() => handleToggleReturn(v)}
+                          />
+                          <span className="relative h-6 w-11 rounded-full bg-red-400 transition-colors duration-200 peer-checked:bg-green-500 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:shadow-sm after:transition-transform after:duration-200 peer-checked:after:translate-x-5" />
+                        </label>
+                      </td>
+                    )}
+
+                    <td className="px-4 py-3">
+                      {v.variation_values?.join(" / ") || "-"}
+                    </td>
+
+                    <td className="px-4 py-3 font-mono text-xs text-slate-700">
+                      {v.sku}
+                    </td>
+                    <td className="px-4 py-3">
+                      <span
+                        className={`rounded-full px-2 py-1 text-xs font-semibold ${
+                          Number(v.qty) > 0
+                            ? "bg-emerald-50 text-emerald-700"
+                            : "bg-rose-50 text-rose-700"
+                        }`}
+                      >
+                        {v.qty ?? "-"}
+                      </span>
+                    </td>
+
+                    {/* <td className="px-4 py-3">
+                      <div className="flex flex-wrap gap-2">
+                        {can("varients.barcode_view") && (
+                          <button
+                            onClick={() => openBarcodePopup(v)}
+                            className="rounded-lg bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-700 transition hover:bg-indigo-100"
+                          >
+                            View
+                          </button>
+                        )}
+
+                        {can("varients.barcode_print") && (
+                          <button
+                            onClick={() => printBarcode(v.id)}
+                            className="rounded-lg bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700 transition hover:bg-emerald-100"
+                          >
+                            Print
+                          </button>
+                        )}
+                      </div>
+                    </td> */}
+
+                    {/* PRODUCT IMAGES */}
+
+                    <td className="px-4 py-3">
+                      <div className="flex flex-wrap gap-2">
+                        {v.product_images?.map((img) => (
+                          <div key={img.id} className="relative">
+                            <img
+                              src={img.url}
+                              className="h-12 w-12 rounded-lg border border-slate-200 object-cover shadow-sm"
+                            />
+                            {can("varients.delete_product_image") && (
+                              <button
+                                onClick={() => deleteProductImage(img.id)}
+                                className="absolute -right-2 -top-2 rounded bg-red-500 px-1 text-xs text-white"
+                              >
+                                ✕
+                              </button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+
+                      {previewProductImages[v.product_id] && (
+                        <div className="mt-2 flex gap-2">
+                          {previewProductImages[v.product_id].map((p, i) => (
+                            <img
+                              key={i}
+                              src={p}
+                              className="h-12 w-12 rounded-lg border border-indigo-200 ring-2 ring-indigo-100"
+                            />
+                          ))}
+                        </div>
+                      )}
+                    </td>
+
+                    {/* VARIANT IMAGES */}
+
+                    <td className="px-4 py-3">
+                      <div className="flex flex-wrap gap-2">
+                        {v.variant_images?.map((img) => (
+                          <div key={img.id} className="relative">
+                            <img
+                              src={img.url}
+                              className="h-12 w-12 rounded-lg border border-slate-200 object-cover shadow-sm"
+                            />
+                            {can("varients.delete_varient_image") && (
+                              <button
+                                onClick={() => deleteVariantImage(img.id)}
+                                className="absolute -right-2 -top-2 rounded bg-red-500 px-1 text-xs text-white"
+                              >
+                                ✕
+                              </button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+
+                      {previewVariantImages[v.id] && (
+                        <div className="mt-2 flex gap-2">
+                          {previewVariantImages[v.id].map((p, i) => (
+                            <img
+                              key={i}
+                              src={p}
+                              className="h-12 w-12 rounded-lg border border-indigo-200 ring-2 ring-indigo-100"
+                            />
+                          ))}
+                        </div>
+                      )}
+                    </td>
+
+                    <td className="px-4 py-3">
+                      <div className="flex flex-col gap-2">
+                        <label className="flex cursor-pointer items-center justify-center rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-100">
+                          Add Product Images
+                          <input
+                            type="file"
+                            multiple
+                            hidden
+                            onChange={(e) =>
+                              handleProductImageChange(
+                                v.product_id,
+                                e.target.files,
+                              )
+                            }
+                          />
+                        </label>
+
+                        {productImages[v.product_id] && (
+                          <span className="text-xs text-slate-500">
+                            {productImages[v.product_id].length} selected
+                          </span>
+                        )}
+
+                        <label className="flex cursor-pointer items-center justify-center rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-medium text-indigo-700 transition hover:bg-indigo-100">
+                          Add Variant Images
+                          <input
+                            type="file"
+                            multiple
+                            hidden
+                            onChange={(e) =>
+                              handleVariantImageChange(v.id, e.target.files)
+                            }
+                          />
+                        </label>
+
+                        {variantImages[v.id] && (
+                          <span className="text-xs text-slate-500">
+                            {variantImages[v.id].length} selected
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
             </tbody>
           </table>
         </div>
@@ -746,7 +740,9 @@ export default function BulkVariantImages() {
                   Print Selected ({selectedBarcodes.length})
                 </button>
               </div>
-              {barcodeList.length === 0 && <p className="text-slate-500">No barcodes</p>}
+              {barcodeList.length === 0 && (
+                <p className="text-slate-500">No barcodes</p>
+              )}
 
               {barcodeList.map((b, i) => (
                 <div
