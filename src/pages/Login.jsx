@@ -6,6 +6,8 @@ import Login3 from "./Login3";
 export default function Login() {
   const { settings, loading } = useAppSettings();
 
+  console.log("ssss", settings);
+
   // 🔥 WAIT until settings loaded
   if (loading) {
     return (

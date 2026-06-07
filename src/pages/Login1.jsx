@@ -9,6 +9,8 @@ const FALLBACK_LOGO = defaultimage;
 
 export default function Login1() {
   const { settings } = useAppSettings();
+
+  console.log("sesstions", settings);
   const { login } = useAuth();
   const navigate = useNavigate();
 
@@ -128,7 +130,7 @@ export default function Login1() {
 
         {/* Footer */}
         <p className="text-center text-xs text-gray-300 mt-6">
-          © {new Date().getFullYear()} Your Company
+          © {new Date().getFullYear()} {settings?.app_name || "Your Company"}
         </p>
       </div>
     </div>

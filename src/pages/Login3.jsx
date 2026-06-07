@@ -227,7 +227,7 @@ export default function Login3() {
 
           {/* Footer */}
           <p className="text-center text-xs text-gray-400 mt-6">
-            © {new Date().getFullYear()} Your Company
+            © {new Date().getFullYear()} {settings?.app_name || "Your Company"}
           </p>
         </div>
       </div>

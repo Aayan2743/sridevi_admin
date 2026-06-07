@@ -1,23 +1,27 @@
 import { useState } from "react";
 import { NavLink } from "react-router-dom";
 import { ChevronDown } from "lucide-react";
+import { useAppSettings } from "../../../context/AppSettingsContext";
 
 const menu111 = [
   { label: "Profile", path: "/settings/profile" },
   { label: "Logo", path: "/settings/logo" },
   { label: "Social media", path: "/settings/social-media" },
-  { label: "Payment gateway", path: "/settings/payment-gateway" },
+  // { label: "Payment gateway", path: "/settings/payment-gateway" },
   { label: "Variation Settings", path: "/settings/variation-settings" },
-  { label: "Whats App Integration", path: "/settings/whatsapp-integration" },
+  // { label: "Whats App Integration", path: "/settings/whatsapp-integration" },
   { label: "Contact Page Settings", path: "/settings/contact-page" },
   { label: "Customer Care Settings", path: "/settings/customer-care-settings" },
   { label: "coupons-settings", path: "/settings/coupons-settings" },
   { label: "Banner-settings", path: "/settings/banner-settings" },
-  { label: "Landing Banner Settings", path: "/settings/landing-banner-settings" },
+  {
+    label: "Landing Banner Settings",
+    path: "/settings/landing-banner-settings",
+  },
   { label: "Shipping-settings", path: "/settings/shipping-settings" },
   { label: "Product Sections", path: "/settings/product-sections" },
 
-    { label: "My Whats App", path: "/my-whatsapp" },
+  { label: "My Whats App", path: "/my-whatsapp" },
 
   {
     label: "Footer Sections",
@@ -37,21 +41,64 @@ const menu111 = [
   },
 ];
 
-
 const menu = [
-  { label: "Profile", path: "/settings/profile", permission: "settings.profile" },
+  {
+    label: "Profile",
+    path: "/settings/profile",
+    permission: "settings.profile",
+  },
   { label: "Logo", path: "/settings/logo", permission: "settings.logo" },
-  { label: "Social media", path: "/settings/social-media", permission: "settings.social_media" },
-  { label: "Payment gateway", path: "/settings/payment-gateway", permission: "settings.payment_gateway" },
-  { label: "Variation Settings", path: "/settings/variation-settings", permission: "settings.variation" },
-  { label: "Whats App Integration", path: "/settings/whatsapp-integration", permission: "settings.whatsapp" },
-  { label: "Contact Page Settings", path: "/settings/contact-page", permission: "settings.contact" },
-  { label: "Customer Care Settings", path: "/settings/customer-care-settings", permission: "settings.customer_care" },
-  { label: "Coupons", path: "/settings/coupons-settings", permission: "settings.coupons" },
-  { label: "Banner", path: "/settings/banner-settings", permission: "settings.banner" },
+  {
+    label: "Social media",
+    path: "/settings/social-media",
+    permission: "settings.social_media",
+  },
+  // {
+  //   label: "Payment gateway",
+  //   path: "/settings/payment-gateway",
+  //   permission: "settings.payment_gateway",
+  // },
+  {
+    label: "Variation Settings",
+    path: "/settings/variation-settings",
+    permission: "settings.variation",
+  },
+  // {
+  //   label: "Whats App Integration",
+  //   path: "/settings/whatsapp-integration",
+  //   permission: "settings.whatsapp",
+  // },
+  {
+    label: "Contact Page Settings",
+    path: "/settings/contact-page",
+    permission: "settings.contact",
+  },
+  {
+    label: "Customer Care Settings",
+    path: "/settings/customer-care-settings",
+    permission: "settings.customer_care",
+  },
+  {
+    label: "Coupons",
+    path: "/settings/coupons-settings",
+    permission: "settings.coupons",
+  },
+  {
+    label: "Banner",
+    path: "/settings/banner-settings",
+    permission: "settings.banner",
+  },
   // { label: "Landing Banner", path: "/settings/landing-banner-settings", permission: "settings.landing_banner" },
-  { label: "Shipping", path: "/settings/shipping-settings", permission: "settings.shipping" },
-  { label: "Product Sections", path: "/settings/product-sections", permission: "settings.product_sections" },
+  {
+    label: "Shipping",
+    path: "/settings/shipping-settings",
+    permission: "settings.shipping",
+  },
+  {
+    label: "Product Sections",
+    path: "/settings/product-sections",
+    permission: "settings.product_sections",
+  },
 
   // { label: "My Whats App", path: "/my-whatsapp", permission: "whatsapp.view" },
 
@@ -152,15 +199,21 @@ const menu = [
 //   );
 // }
 
-
 export default function SettingsSidebar() {
   const [openMenu, setOpenMenu] = useState(null);
+  const { settings } = useAppSettings();
 
   return (
     <aside className="sticky top-0 h-screen w-72 border-r border-slate-200 bg-white">
       <div className="border-b border-slate-200 px-5 py-4">
-        <h2 className="text-base font-semibold text-slate-900">Settings</h2>
-        <p className="mt-0.5 text-xs text-slate-500">System configuration</p>
+        <h2 className="text-base font-semibold text-slate-900">
+          {settings?.app_name || "Settings"}
+        </h2>
+        <p className="mt-0.5 text-xs text-slate-500 capitalize">
+          {settings?.login_type
+            ? `Login: ${settings.login_type.replace("login", "Login ")}`
+            : "System configuration"}
+        </p>
       </div>
 
       <ul className="space-y-1 overflow-y-auto p-3 text-sm">

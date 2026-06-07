@@ -3,11 +3,16 @@ import { Outlet, Link, useLocation } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import { useLogoSettings } from "../context/LogoSettingsContext";
 import { ChevronDown, Menu, X, Search } from "lucide-react";
+import { useAppSettings } from "../context/AppSettingsContext";
 
 export default function DashboardLayout() {
   const { user, logout } = useAuth();
   const { settings: logoSettings } = useLogoSettings();
   const location = useLocation();
+
+  const { settings, loading } = useAppSettings();
+
+  console.log("asuf", settings.app_name);
 
   const [activeDropdown, setActiveDropdown] = useState(null);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -19,7 +24,7 @@ export default function DashboardLayout() {
       label: "Products",
       items: [
         { label: "All Products", path: "/products" },
-        // { label: "POS Products", path: "/pos/products" },
+
         { label: "Bulk Images", path: "/bulk-variant-images" },
         {
           label: "Bulk Images Store",
@@ -62,8 +67,9 @@ export default function DashboardLayout() {
     },
   ];
 
-  const isActive = (path) => location.pathname.startsWith(path);
+  // const isActive = (path) => location.pathname.startsWith(path);
 
+  const isActive = (path) => location.pathname === path;
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100">
       {/* 🔥 GLASS NAVBAR */}
@@ -78,7 +84,7 @@ export default function DashboardLayout() {
           </button>
 
           <span className="font-extrabold text-xl bg-gradient-to-r from-green-500 to-emerald-600 bg-clip-text text-transparent">
-            {logoSettings?.app_name || "Application"}
+            {settings.app_name || "Application sdsds"}
           </span>
         </div>
 
