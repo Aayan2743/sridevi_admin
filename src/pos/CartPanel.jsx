@@ -15,7 +15,7 @@ export default function CartPanel({ cart = [], setCart }) {
   const [showAddCustomerPopup, setShowAddCustomerPopup] = useState(false);
   const [pendingPhone, setPendingPhone] = useState("");
   const [newCustomerName, setNewCustomerName] = useState("");
-  const [newCustomerGender, setNewCustomerGender] = useState("");
+  const [newCustomerSource, setNewCustomerSource] = useState("");
 
   const [showOrderHistory, setShowOrderHistory] = useState(false);
   const [orderHistory, setOrderHistory] = useState([]);
@@ -157,6 +157,7 @@ export default function CartPanel({ cart = [], setCart }) {
         variant_id: item.variation_id,
         qty: item.qty,
         barcode_id: item.barcode_id ?? null,
+        hsn_code: item.hsn_code ?? null,
         // Snapshot: freeze billing values at the time of order creation
         product_name: item.product_name,
         variation_name: item.variation_name,
@@ -197,6 +198,7 @@ export default function CartPanel({ cart = [], setCart }) {
           items: cart.map((item) => ({
             product_name: item.product_name,
             variant_name: item.variation_name,
+            hsn_code: item.hsn_code, // <-- ADD THIS
             price: Number(item.price) || 0,
             MRP: Number(item.mrp || item.MRP) || 0,
             discount: Number(item.discount) || 0,
@@ -490,8 +492,18 @@ export default function CartPanel({ cart = [], setCart }) {
                   : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
               }`}
             >
-              <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+              <svg
+                className="h-5 w-5"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={2}
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"
+                />
               </svg>
               Cash
             </button>
@@ -507,8 +519,18 @@ export default function CartPanel({ cart = [], setCart }) {
                   : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
               }`}
             >
-              <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
+              <svg
+                className="h-5 w-5"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={2}
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"
+                />
               </svg>
               QR Code
             </button>
@@ -570,7 +592,8 @@ export default function CartPanel({ cart = [], setCart }) {
               UPI ID: <span className="font-semibold">{merchantUpiId}</span>
             </p>
             <p className="text-[10px] text-blue-500 mt-1">
-              Customer scans this QR with any UPI app (Google Pay, PhonePe, Paytm, etc.)
+              Customer scans this QR with any UPI app (Google Pay, PhonePe,
+              Paytm, etc.)
             </p>
 
             <div className="mt-4 flex items-center gap-2">
@@ -606,7 +629,12 @@ export default function CartPanel({ cart = [], setCart }) {
           </button>
         ) : (
           <button
-            disabled={cart.length === 0 || !customer.name || loading || !qrPaymentConfirmed}
+            disabled={
+              cart.length === 0 ||
+              !customer.name ||
+              loading ||
+              !qrPaymentConfirmed
+            }
             onClick={handleCreateOrder}
             className="w-full bg-blue-700 text-white py-4 rounded-2xl disabled:opacity-40 flex items-center justify-center gap-2 font-semibold"
           >
@@ -650,17 +678,25 @@ export default function CartPanel({ cart = [], setCart }) {
 
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">
-                  Gender <span className="text-gray-400">(optional)</span>
+                  How you know about store?{" "}
+                  <span className="text-gray-400">(optional)</span>
                 </label>
                 <select
-                  value={newCustomerGender}
-                  onChange={(e) => setNewCustomerGender(e.target.value)}
+                  value={newCustomerSource}
+                  onChange={(e) => setNewCustomerSource(e.target.value)}
                   className="h-9 w-full rounded-lg border px-2 text-xs focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100"
                 >
-                  <option value="">Select Gender</option>
-                  <option value="male">Male</option>
-                  <option value="female">Female</option>
-                  <option value="other">Other</option>
+                  <option value="">Select Source</option>
+                  <option value="Instagram">Instagram</option>
+                  <option value="Advertisement">Advertisement</option>
+                  <option value="Paper Ad">Paper Ad</option>
+                  <option value="Referral">Referral</option>
+                  <option value="Old Customer">Old Customer</option>
+                  <option value="YouTube">YouTube</option>
+                  <option value="Casual Visit">Casual Visit</option>
+                  <option value="Facebook">Facebook</option>
+                  <option value="Google">Google</option>
+                  <option value="Other">Other</option>
                 </select>
               </div>
             </div>
@@ -670,7 +706,7 @@ export default function CartPanel({ cart = [], setCart }) {
                 onClick={() => {
                   setShowAddCustomerPopup(false);
                   setNewCustomerName("");
-                  setNewCustomerGender("");
+                  setNewCustomerSource("");
                   setCustomer((prev) => ({ ...prev, phone: "" }));
                 }}
                 className="px-4 py-2 border rounded"
@@ -686,7 +722,7 @@ export default function CartPanel({ cart = [], setCart }) {
                       {
                         phone: pendingPhone,
                         name: newCustomerName.trim() || "New Customer",
-                        gender: newCustomerGender || null,
+                        how_you_know_about_store: newCustomerSource || null,
                       },
                     );
 
@@ -702,7 +738,7 @@ export default function CartPanel({ cart = [], setCart }) {
                       setOrderHistory([]);
 
                       setNewCustomerName("");
-                      setNewCustomerGender("");
+                      setNewCustomerSource("");
                       setShowAddCustomerPopup(false);
                     }
                   } catch (err) {
@@ -838,8 +874,12 @@ const printReceipt = (order) => {
     : new Date().toLocaleString();
 
   // Use top-level customer_name/phone or fallback to shipping_address_snapshot
-  const customerName = order.customer_name || order.shipping_address_snapshot?.name || "Walk-in Customer";
-  const customerPhone = order.customer_phone || order.shipping_address_snapshot?.phone || "-";
+  const customerName =
+    order.customer_name ||
+    order.shipping_address_snapshot?.name ||
+    "Walk-in Customer";
+  const customerPhone =
+    order.customer_phone || order.shipping_address_snapshot?.phone || "-";
 
   const addr = order.shipping_address_snapshot || {};
   const address = [
@@ -859,7 +899,8 @@ const printReceipt = (order) => {
           : item.product_name;
 
       const qty = Number(item.qty ?? item.quantity ?? 1);
-      const HSN = item.hsn ?? item.hsn ?? "N/A";
+      // const HSN = item.hsn ?? item.hsn ?? "N/A";
+      const HSN = item.hsn_code ?? "N/A";
       const discountPerItem = Number(item.total_discount ?? 0);
       const total = Number(item.total ?? 0);
 
@@ -880,9 +921,13 @@ const printReceipt = (order) => {
     .join("");
 
   const subtotal = Number(order.subtotal ?? order.sub_total ?? 0).toFixed(2);
-  const discountTotal = Number(order.discount_total ?? order.discount ?? 0).toFixed(2);
+  const discountTotal = Number(
+    order.discount_total ?? order.discount ?? 0,
+  ).toFixed(2);
   const taxTotal = Number(order.tax_total ?? order.tax ?? 0).toFixed(2);
-  const deliveryCharge = Number(order.delivery_charge ?? order.delivery_fee ?? order.deliveryFee ?? 0).toFixed(2);
+  const deliveryCharge = Number(
+    order.delivery_charge ?? order.delivery_fee ?? order.deliveryFee ?? 0,
+  ).toFixed(2);
   const billDiscount = Number(order.billed_discount ?? 0).toFixed(2);
   const grandTotal = Number(order.grand_total ?? order.total ?? 0).toFixed(2);
   const paidAmount = Number(order.paid_amount ?? grandTotal).toFixed(2);
@@ -994,8 +1039,15 @@ margin-top:6px;
 <body>
 
 <div class="header">
-<div class="store">Sri Devi Herbals</div>
+<div class="store">Sridevi Herbal & Co</div>
 <div class="tagline">Thank You Visit Again</div>
+<div class="tagline" style="font-size: 9px; margin-top: 2px;">
+Pvt Market Building, Shop No 23B<br>
+Kothapet, Dilshuknagar, Hyderabad - 500035
+</div>
+<div class="tagline" style="font-size: 9px; margin-top: 2px;">
+GST: 36AQYPV5495N1ZA | Ph: +91 8121651100
+</div>
 </div>
 
 <hr>
@@ -1067,7 +1119,17 @@ ${itemsHtml}
 <hr>
 
 <div class="footer">
-Powered by Sri Devi Herbals POS
+<div style="text-align: center; margin-top: 10px;">
+<img 
+  src="https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=https://www.youtube.com/@srideviherbaltv/shorts" 
+  alt="YouTube QR" 
+  style="width: 60px; height: 60px; display: inline-block;"
+/>
+<div style="font-size: 9px; margin-top: 4px;">Scan to watch product usage videos</div>
+</div>
+<div style="text-align: center; margin-top: 8px; font-size: 10px;">
+Powered by Sridevi Herbal & Co POS
+</div>
 </div>
 
 </body>

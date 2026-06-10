@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 export default function VariationModal({ open, product, onClose, onConfirm }) {
   const [selected, setSelected] = useState(null);
 
-   console.log("Variants: dfdfdfdfdfdf", product?.variants);
+  console.log("Variants: dfdfdfdfdfdf", product?.variants);
   useEffect(() => {
     if (!open) setSelected(null);
   }, [open]);
@@ -18,7 +18,9 @@ export default function VariationModal({ open, product, onClose, onConfirm }) {
         {/* HEADER */}
         <div className="p-4 border-b flex justify-between items-center">
           <div>
-            <h3 className="font-semibold text-lg">Select Variation using click</h3>
+            <h3 className="font-semibold text-lg">
+              Select Variation using click
+            </h3>
             <p className="text-sm text-gray-500">{product.name}</p>
           </div>
 
@@ -42,7 +44,7 @@ export default function VariationModal({ open, product, onClose, onConfirm }) {
             <VariantRow
               key={variant.id}
               variant={variant}
-                tax={product.tax}
+              tax={product.tax}
               active={selected?.id === variant.id}
               onSelect={setSelected}
             />
@@ -55,12 +57,12 @@ export default function VariationModal({ open, product, onClose, onConfirm }) {
             onClick={onClose}
             className="flex-1 border rounded-xl py-2 text-sm"
           >
-            Cancel 
+            Cancel
           </button>
 
           <button
             disabled={!selected}
-            onClick={() => onConfirm(product,selected)}
+            onClick={() => onConfirm(product, selected)}
             className="flex-1 bg-indigo-600 text-white rounded-xl py-2 text-sm font-medium disabled:opacity-50"
           >
             Add to Cart dsdsd
@@ -73,9 +75,7 @@ export default function VariationModal({ open, product, onClose, onConfirm }) {
 
 /* ================= VARIANT ROW ================= */
 
-function VariantRow({ variant,tax, active, onSelect }) {
-
-
+function VariantRow({ variant, tax, active, onSelect }) {
   console.log("Variant :", variant);
   const images = variant.images || [];
   const [index, setIndex] = useState(0);
@@ -95,11 +95,11 @@ function VariantRow({ variant,tax, active, onSelect }) {
   };
 
   const getFinalPrice = (price) => {
-  if (tax?.gst_enabled && tax?.gst_type === "exclusive") {
-    return price + (price * tax.gst_percent) / 100;
-  }
-  return price;
-};
+    if (tax?.gst_enabled && tax?.gst_type === "exclusive") {
+      return price + (price * tax.gst_percent) / 100;
+    }
+    return price;
+  };
 
   useEffect(() => {
     return () => clearInterval(timerRef.current);
@@ -148,30 +148,27 @@ function VariantRow({ variant,tax, active, onSelect }) {
       {/* PRICE */}
       {/* <p className="font-semibold text-sm">₹ {variant.price ?? 0}</p> */}
 
+      <div className="text-right">
+        {/* GST BADGE */}
+        {tax?.gst_enabled && tax?.gst_type === "exclusive" && (
+          <p className="text-[10px] text-green-600">+ GST {tax.gst_percent}%</p>
+        )}
 
-  <div className="text-right">
-  {/* GST BADGE */}
-  {tax?.gst_enabled && tax?.gst_type === "exclusive" && (
-    <p className="text-[10px] text-green-600">
-      + GST {tax.gst_percent}%
-    </p>
-  )}
+        {/* MRP */}
+        <p className="text-xs text-gray-400 line-through">
+          ₹ {variant.MRP ?? 0}
+        </p>
 
-  {/* MRP */}
-  <p className="text-xs text-gray-400 line-through">
-    ₹ {variant.MRP ?? 0}
-  </p>
+        {/* Discount */}
+        <p className="text-xs text-green-600">
+          Discount: ₹ {variant.discount ?? 0}
+        </p>
 
-  {/* Discount */}
-  <p className="text-xs text-green-600">
-    Discount: ₹ {variant.discount ?? 0}
-  </p>
-
-  {/* FINAL PRICE */}
-  <p className="font-semibold text-sm text-gray-900">
-    ₹ {getFinalPrice(variant.price ?? 0).toFixed(2)}
-  </p>
-</div>
+        {/* FINAL PRICE */}
+        <p className="font-semibold text-sm text-gray-900">
+          ₹ {getFinalPrice(variant.price ?? 0).toFixed(2)}
+        </p>
+      </div>
     </button>
   );
 }

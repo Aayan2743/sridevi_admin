@@ -104,6 +104,9 @@ export default function ManualOrderDetails() {
         const price = Number(item.price || 0);
         const discount = Number(item.discount || 0);
 
+        // Get HSN code directly from item
+        const HSN = item.hsn_code || "N/A";
+
         const mrp = price;
         const finalPrice = price - discount;
 
@@ -114,6 +117,7 @@ export default function ManualOrderDetails() {
         return `
 <tr>
   <td class="item">${name}</td>
+    <td class="hsn">${HSN}</td>
   <td class="right qty">${qty}</td>
   <td class="right mrp">₹${lineMRP.toFixed(2)}</td>
   <td class="right disc">₹${lineDiscount.toFixed(2)}</td>
@@ -187,6 +191,11 @@ th, td{
   overflow:hidden;
   text-overflow:ellipsis;
 }
+.hsn{
+  width:15%;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}  
 
 .qty{ width:5%; }
 .mrp{ width:20%; }
@@ -225,7 +234,7 @@ hr{
 <body>
 
 <div class="header">
-  <div class="store">Sri Devi Herbals</div>
+  <div class="store">Sridevi Herbal & Co</div>
   <div class="tagline">Thank You Visit Again</div>
 </div>
 
@@ -242,10 +251,11 @@ hr{
 
 <hr>
 
-<table>
+        <table>
 <thead>
 <tr>
   <th class="item">Item</th>
+  <th class="hsn">HSN</th>
   <th class="right qty">Qty</th>
   <th class="right mrp">MRP</th>
   <th class="right disc">Disc</th>
@@ -299,7 +309,7 @@ ${itemsHtml}
 <hr>
 
 <div class="footer">
-Powered by Sri Devi Herbals POS
+Powered by Sridevi Herbal & Co POS
 </div>
 
 </body>
