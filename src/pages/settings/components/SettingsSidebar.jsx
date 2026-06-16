@@ -100,6 +100,12 @@ const menu = [
     permission: "settings.product_sections",
   },
 
+  {
+    label: "Affiliate",
+    path: "/settings/affiliate",
+    permission: "settings.product_sections",
+  },
+
   // { label: "My Whats App", path: "/my-whatsapp", permission: "whatsapp.view" },
 
   // {

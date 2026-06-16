@@ -80,6 +80,7 @@ import ComingSoon from "./pages/ComingSoon";
 import SectionManager from "./pages/SectionManager";
 import PosProducts from "./pages/PosProducts";
 import BulkStoreVariantImages from "./pages/BulkStoreVariantImages";
+import AffiliateManager from "./pages/AffiliateManager";
 
 function AppRoutes() {
   const { loading } = useAuth();
@@ -533,6 +534,15 @@ function AppRoutes() {
             element={
               <PrivateRoute permission="settings.product_section_view">
                 <SectionManager />
+              </PrivateRoute>
+            }
+          />
+
+          <Route
+            path="affiliate"
+            element={
+              <PrivateRoute permission="settings.product_section_view">
+                <AffiliateManager />
               </PrivateRoute>
             }
           />
