@@ -81,6 +81,7 @@ import SectionManager from "./pages/SectionManager";
 import PosProducts from "./pages/PosProducts";
 import BulkStoreVariantImages from "./pages/BulkStoreVariantImages";
 import AffiliateManager from "./pages/AffiliateManager";
+import AffiliateWithdrawalRequests from "./pages/AffiliateWithdrawalRequests";
 
 function AppRoutes() {
   const { loading } = useAuth();
@@ -543,6 +544,15 @@ function AppRoutes() {
             element={
               <PrivateRoute permission="settings.product_section_view">
                 <AffiliateManager />
+              </PrivateRoute>
+            }
+          />
+
+          <Route
+            path="affiliate-requests"
+            element={
+              <PrivateRoute permission="settings.product_section_view">
+                <AffiliateWithdrawalRequests />
               </PrivateRoute>
             }
           />
