@@ -1,5 +1,3 @@
-
-
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ChevronDown, Search, SlidersHorizontal } from "lucide-react";
@@ -9,9 +7,7 @@ import { useAuth } from "../auth/AuthContext";
 import AccessDenied from "./components/AccessDenied";
 
 export default function OrdersPage() {
-
-    const { can } = useAuth();
-
+  const { can } = useAuth();
 
   const navigate = useNavigate();
   const [orders, setOrders] = useState([]);
@@ -31,7 +27,7 @@ export default function OrdersPage() {
   const statusPill = (status) => {
     const map = {
       placed: "bg-slate-100 text-slate-700",
-      bill_sent: "bg-indigo-100 text-indigo-700",
+      // bill_sent: "bg-indigo-100 text-indigo-700",
       ready: "bg-amber-100 text-amber-700",
       in_transit: "bg-blue-100 text-blue-700",
       completed: "bg-emerald-100 text-emerald-700",
@@ -100,14 +96,9 @@ export default function OrdersPage() {
     loadStatusCounts();
   }, [activeTab, search, page]);
 
-
-  
-   if (!can("online_orders.view")) {
-    return (
-      <AccessDenied />
-    );
+  if (!can("online_orders.view")) {
+    return <AccessDenied />;
   }
-
 
   /* ================= UI ================= */
   return (
@@ -116,9 +107,12 @@ export default function OrdersPage() {
         <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-center">
           <div className="flex items-center gap-4">
             <div>
-              <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Orders</h1>
+              <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
+                Orders
+              </h1>
               <p className="mt-1 text-sm text-slate-500">
-                Manage online orders, track status, and update fulfillment quickly.
+                Manage online orders, track status, and update fulfillment
+                quickly.
               </p>
             </div>
 
@@ -215,95 +209,109 @@ export default function OrdersPage() {
       {/* ================= TABLE ================= */}
       <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
         <div className="overflow-x-auto">
-        <table className="min-w-full text-sm">
-          <thead className="bg-slate-100 text-slate-700">
-            <tr>
-              <th className="px-4 py-3">
-                <input type="checkbox" />
-              </th>
-              <th className="px-4 py-3 text-left">Order ID</th>
-              <th className="px-4 py-3 text-left">Contact</th>
-              <th className="px-4 py-3 text-left">Date</th>
-              <th className="px-4 py-3 text-right">Amount</th>
-              <th className="px-4 py-3 text-left">Order type</th>
-              <th className="px-4 py-3 text-left">Order status</th>
-              <th className="px-4 py-3 text-center">Items</th>
-              <th className="px-4 py-3 text-left">Payment mode</th>
-              <th className="px-4 py-3 text-left">Payment status</th>
-              <th className="px-4 py-3 text-left">View</th>
-              <th className="px-4 py-3 text-left">Update</th>
-            </tr>
-          </thead>
-
-          <tbody>
-            {loading && (
+          <table className="min-w-full text-sm">
+            <thead className="bg-slate-100 text-slate-700">
               <tr>
-                <td colSpan="12" className="py-10 text-center text-slate-400">
-                  Loading orders...
-                </td>
-              </tr>
-            )}
-
-            {!loading && orders.length === 0 && (
-              <tr>
-                <td colSpan="12" className="py-10 text-center text-slate-400">
-                  No orders found
-                </td>
-              </tr>
-            )}
-
-            {orders.map((o) => (
-              <tr key={o.id} className="border-t border-slate-100 transition hover:bg-slate-50/70">
-                <td className="px-4 py-3">
+                <th className="px-4 py-3">
                   <input type="checkbox" />
-                </td>
-                <td className="px-4 py-3 font-semibold text-slate-900">#{o.id}</td>
-                <td className="px-4 py-3">{o.user?.phone || "-"}</td>
-                <td className="px-4 py-3 text-slate-500">
-                  {new Date(o.created_at).toLocaleString()}
-                </td>
-                <td className="px-4 py-3 text-right font-semibold text-slate-900">
-                  ₹{o.total_amount}
-                </td>
-                <td className="px-4 py-3">Self Billed</td>
-                <td className="px-4 py-3">
-                  <span className={`rounded-full px-3 py-1 text-xs font-semibold ${statusPill(o.order_status || "placed")}`}>
-                  {(o.order_status || "placed").toUpperCase()}
-                  </span>
-                </td>
-                <td className="px-4 py-3 text-center">
-                  {o.items?.length || 0}
-                </td>
-                <td className="px-4 py-3">{o.payment_method}</td>
-                <td className="px-4 py-3 text-slate-500">{o.payment_status}</td>
-                {/* <td className="px-4 py-3 text-gray-500">{o.payment_status}</td> */}
-                <td className="px-4 py-3 text-slate-500">
-                  <button
-                    onClick={() => navigate(`/orders/${o.id}`)}
-                    className="rounded-lg bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-700 transition hover:bg-indigo-100"
-                  >
-                    View
-                  </button>
-                </td>
-
-                <td className="px-4 py-3">
-                  <select
-                    value={o.order_status}
-                    onChange={(e) => changeOrderStatus(o.id, e.target.value)}
-                    className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs text-slate-700 outline-none focus:ring-2 focus:ring-indigo-200"
-                  >
-                    <option value="placed">Placed</option>
-                    <option value="bill_sent">Bill Sent</option>
-                    <option value="ready">Ready To Pick</option>
-                    <option value="in_transit">In Transit</option>
-                    <option value="completed">Completed</option>
-                    <option value="cancelled">Cancelled</option>
-                  </select>
-                </td>
+                </th>
+                <th className="px-4 py-3 text-left">Order ID</th>
+                <th className="px-4 py-3 text-left">Contact</th>
+                <th className="px-4 py-3 text-left">Affiliate Name</th>
+                <th className="px-4 py-3 text-left">Date</th>
+                <th className="px-4 py-3 text-right">Amount</th>
+                <th className="px-4 py-3 text-left">Order type</th>
+                <th className="px-4 py-3 text-left">Order status</th>
+                <th className="px-4 py-3 text-center">Items</th>
+                <th className="px-4 py-3 text-left">Payment mode</th>
+                <th className="px-4 py-3 text-left">Payment status</th>
+                <th className="px-4 py-3 text-left">View</th>
+                <th className="px-4 py-3 text-left">Update</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+
+            <tbody>
+              {loading && (
+                <tr>
+                  <td colSpan="12" className="py-10 text-center text-slate-400">
+                    Loading orders...
+                  </td>
+                </tr>
+              )}
+
+              {!loading && orders.length === 0 && (
+                <tr>
+                  <td colSpan="12" className="py-10 text-center text-slate-400">
+                    No orders found
+                  </td>
+                </tr>
+              )}
+
+              {orders.map((o) => (
+                <tr
+                  key={o.id}
+                  className="border-t border-slate-100 transition hover:bg-slate-50/70"
+                >
+                  <td className="px-4 py-3">
+                    <input type="checkbox" />
+                  </td>
+                  <td className="px-4 py-3 font-semibold text-slate-900">
+                    #{o.id}
+                  </td>
+                  <td className="px-4 py-3">{o.user?.phone || "-"}</td>
+
+                  <td className="px-4 py-3">
+                    {o.affiliate?.user?.name || "-"}
+                  </td>
+                  <td className="px-4 py-3 text-slate-500">
+                    {new Date(o.created_at).toLocaleString()}
+                  </td>
+                  <td className="px-4 py-3 text-right font-semibold text-slate-900">
+                    ₹{o.total_amount}
+                  </td>
+                  <td className="px-4 py-3">Self Billed</td>
+                  <td className="px-4 py-3">
+                    <span
+                      className={`rounded-full px-3 py-1 text-xs font-semibold ${statusPill(o.order_status || "placed")}`}
+                    >
+                      {(o.order_status || "placed").toUpperCase()}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-center">
+                    {o.items?.length || 0}
+                  </td>
+                  <td className="px-4 py-3">{o.payment_method}</td>
+                  <td className="px-4 py-3 text-slate-500">
+                    {o.payment_status}
+                  </td>
+                  {/* <td className="px-4 py-3 text-gray-500">{o.payment_status}</td> */}
+                  <td className="px-4 py-3 text-slate-500">
+                    <button
+                      onClick={() => navigate(`/orders/${o.id}`)}
+                      className="rounded-lg bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-700 transition hover:bg-indigo-100"
+                    >
+                      View
+                    </button>
+                  </td>
+
+                  <td className="px-4 py-3">
+                    <select
+                      value={o.order_status}
+                      onChange={(e) => changeOrderStatus(o.id, e.target.value)}
+                      className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs text-slate-700 outline-none focus:ring-2 focus:ring-indigo-200"
+                    >
+                      <option value="placed">Placed</option>
+                      <option value="bill_sent">Bill Sent</option>
+                      <option value="ready">Ready To Pick</option>
+                      <option value="in_transit">In Transit</option>
+                      <option value="completed">Completed</option>
+                      <option value="cancelled">Cancelled</option>
+                    </select>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
 
@@ -335,7 +343,9 @@ export default function OrdersPage() {
 
 const Stat = ({ title, value }) => (
   <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-    <p className="text-xs font-medium uppercase tracking-wide text-slate-400">{title}</p>
+    <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
+      {title}
+    </p>
     <p className="mt-1 text-xl font-semibold text-slate-900">{value}</p>
   </div>
 );
