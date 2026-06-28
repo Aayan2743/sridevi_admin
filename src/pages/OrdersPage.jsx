@@ -2,12 +2,39 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ChevronDown, Search, SlidersHorizontal } from "lucide-react";
 import api from "../api/axios";
+import ShippingProviderModal from "./ShippingProviderModal";
+import Swal from "sweetalert2";
 
 import { useAuth } from "../auth/AuthContext";
 import AccessDenied from "./components/AccessDenied";
 
 export default function OrdersPage() {
   const { can } = useAuth();
+  const [shippingModal, setShippingModal] = useState(false);
+  const [selectedOrderId, setSelectedOrderId] = useState(null);
+
+  const [dimensionsModal, setDimensionsModal] = useState(false);
+  const [selectedProvider, setSelectedProvider] = useState(null);
+
+  const [packageDimensions, setPackageDimensions] = useState({
+    weight: 500,
+    length: 10,
+    breadth: 10,
+    height: 10,
+  });
+
+  const [shippingProcessing, setShippingProcessing] = useState(false);
+
+  const [localOpen, setLocalOpen] = useState(false);
+
+  const [localSaving, setLocalSaving] = useState(false);
+
+  const [localCourier, setLocalCourier] = useState({
+    partner: "",
+    awb: "",
+    tracking_url: "",
+    shipping_amount: "",
+  });
 
   const navigate = useNavigate();
   const [orders, setOrders] = useState([]);
@@ -87,6 +114,103 @@ export default function OrdersPage() {
       loadOrders();
     } catch (err) {
       alert(err.response?.data?.message || "Failed to update order status");
+    }
+  };
+
+  const handleShippingProvider = async (provider) => {
+    setShippingModal(false);
+
+    setSelectedProvider(provider);
+
+    setPackageDimensions({
+      weight: 500,
+      length: 10,
+      breadth: 10,
+      height: 10,
+    });
+
+    setDimensionsModal(true);
+  };
+
+  const proceedWithShipping = async () => {
+    const provider = selectedProvider;
+    const dims = packageDimensions;
+
+    if (provider === "local") {
+      setDimensionsModal(false);
+      setLocalOpen(true);
+      return;
+    }
+
+    setShippingProcessing(true);
+    try {
+      const res = await api.post(
+        `/admin-dashboard/orders/${selectedOrderId}/shipping-online`,
+        {
+          shipping_provider: provider,
+          package_weight: dims.weight,
+          package_length: dims.length,
+          package_breadth: dims.breadth,
+          package_height: dims.height,
+        },
+      );
+
+      Swal.fire({
+        icon: "success",
+        title: "Shipping Successful",
+        text: res.data.message,
+        timer: 2000,
+        showConfirmButton: false,
+      });
+      loadOrders();
+    } catch (err) {
+      Swal.fire({
+        icon: "error",
+        title: "Shipping Failed",
+        text: err.response?.data?.message || "Shipping failed",
+      });
+    } finally {
+      setDimensionsModal(false);
+      setShippingProcessing(false);
+    }
+  };
+
+  const saveLocalCourier = async () => {
+    setLocalSaving(true);
+
+    try {
+      await api.post(
+        `/admin-dashboard/orders/${selectedOrderId}/shipping-online`,
+        {
+          shipping_provider: "local",
+          courier_partner: localCourier.partner,
+          awb_number: localCourier.awb,
+          tracking_url: localCourier.tracking_url,
+          shipping_amount: localCourier.shipping_amount,
+          package_weight: packageDimensions.weight,
+          package_length: packageDimensions.length,
+          package_breadth: packageDimensions.breadth,
+          package_height: packageDimensions.height,
+        },
+      );
+
+      Swal.fire({
+        icon: "success",
+        title: "Shipping Saved",
+        timer: 2000,
+        showConfirmButton: false,
+      });
+
+      setLocalOpen(false);
+      loadOrders();
+    } catch (err) {
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: err.response?.data?.message || "Failed to save shipping",
+      });
+    } finally {
+      setLocalSaving(false);
     }
   };
 
@@ -222,6 +346,7 @@ export default function OrdersPage() {
                 <th className="px-4 py-3 text-right">Amount</th>
                 <th className="px-4 py-3 text-left">Order type</th>
                 <th className="px-4 py-3 text-left">Order status</th>
+                <th className="px-4 py-3 text-left">Shipping</th>
                 <th className="px-4 py-3 text-center">Items</th>
                 <th className="px-4 py-3 text-left">Payment mode</th>
                 <th className="px-4 py-3 text-left">Payment status</th>
@@ -277,6 +402,24 @@ export default function OrdersPage() {
                       {(o.order_status || "placed").toUpperCase()}
                     </span>
                   </td>
+
+                  <td className="px-4 py-3">
+                    {o.shipping ? (
+                      <div className="space-y-1">
+                        <span className="inline-block rounded-full bg-green-100 px-2 py-1 text-xs font-semibold text-green-700">
+                          {o.shipping.shipping_provider?.toUpperCase()}
+                        </span>
+
+                        <div className="text-xs text-slate-600">
+                          AWB: {o.shipping.awb || "-"}
+                        </div>
+                      </div>
+                    ) : (
+                      <span className="rounded-full bg-red-100 px-2 py-1 text-xs font-semibold text-red-600">
+                        Not Shipped
+                      </span>
+                    )}
+                  </td>
                   <td className="px-4 py-3 text-center">
                     {o.items?.length || 0}
                   </td>
@@ -295,6 +438,16 @@ export default function OrdersPage() {
                   </td>
 
                   <td className="px-4 py-3">
+                    <button
+                      onClick={() => {
+                        setSelectedOrderId(o.id);
+                        setShippingModal(true);
+                      }}
+                      className="w-full rounded-lg bg-blue-600 px-3 py-2 text-xs text-white hover:bg-blue-700"
+                    >
+                      Shipping
+                    </button>
+
                     <select
                       value={o.order_status}
                       onChange={(e) => changeOrderStatus(o.id, e.target.value)}
@@ -312,6 +465,229 @@ export default function OrdersPage() {
               ))}
             </tbody>
           </table>
+
+          {/* PACKAGE DIMENSIONS POPUP */}
+          {dimensionsModal && (
+            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+              <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden">
+                {/* Header */}
+                <div className="bg-blue-600 px-6 py-4">
+                  <h3 className="text-xl font-semibold text-white">
+                    Package Dimensions
+                  </h3>
+                  <p className="text-blue-100 text-sm mt-1">
+                    Enter package details for {selectedProvider?.toUpperCase()}
+                  </p>
+                </div>
+
+                {/* Form */}
+                <div className="p-6 space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Package Weight (g)
+                    </label>
+                    <input
+                      type="number"
+                      placeholder="e.g. 500"
+                      value={packageDimensions.weight}
+                      onChange={(e) =>
+                        setPackageDimensions({
+                          ...packageDimensions,
+                          weight: e.target.value,
+                        })
+                      }
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Package Length (cm)
+                    </label>
+                    <input
+                      type="number"
+                      placeholder="e.g. 10"
+                      value={packageDimensions.length}
+                      onChange={(e) =>
+                        setPackageDimensions({
+                          ...packageDimensions,
+                          length: e.target.value,
+                        })
+                      }
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Package Breadth (cm)
+                    </label>
+                    <input
+                      type="number"
+                      placeholder="e.g. 10"
+                      value={packageDimensions.breadth}
+                      onChange={(e) =>
+                        setPackageDimensions({
+                          ...packageDimensions,
+                          breadth: e.target.value,
+                        })
+                      }
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Package Height (cm)
+                    </label>
+                    <input
+                      type="number"
+                      placeholder="e.g. 10"
+                      value={packageDimensions.height}
+                      onChange={(e) =>
+                        setPackageDimensions({
+                          ...packageDimensions,
+                          height: e.target.value,
+                        })
+                      }
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                    />
+                  </div>
+                </div>
+
+                {/* Footer */}
+                <div className="px-6 pb-6 flex gap-3">
+                  <button
+                    onClick={proceedWithShipping}
+                    disabled={shippingProcessing}
+                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 rounded-lg transition disabled:opacity-50"
+                  >
+                    {shippingProcessing ? "Processing..." : "Proceed"}
+                  </button>
+
+                  <button
+                    onClick={() => setDimensionsModal(false)}
+                    className="flex-1 border border-gray-300 hover:bg-gray-100 py-2.5 rounded-lg font-medium transition"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {localOpen && (
+            <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+              <div className="w-full max-w-md overflow-hidden rounded-2xl bg-white shadow-2xl">
+                <div className="bg-orange-600 px-6 py-4">
+                  <h3 className="text-xl font-semibold text-white">
+                    Local Courier Details
+                  </h3>
+
+                  <p className="mt-1 text-sm text-orange-100">
+                    Enter shipping information for this order
+                  </p>
+                </div>
+
+                <div className="space-y-4 p-6">
+                  <div>
+                    <label className="mb-1 block text-sm font-medium">
+                      Courier Partner
+                    </label>
+
+                    <input
+                      value={localCourier.partner}
+                      onChange={(e) =>
+                        setLocalCourier({
+                          ...localCourier,
+                          partner: e.target.value,
+                        })
+                      }
+                      placeholder="e.g. DTDC, Delhivery, Blue Dart"
+                      className="w-full rounded-lg border px-3 py-2"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-1 block text-sm font-medium">
+                      AWB Number
+                    </label>
+
+                    <input
+                      value={localCourier.awb}
+                      onChange={(e) =>
+                        setLocalCourier({
+                          ...localCourier,
+                          awb: e.target.value,
+                        })
+                      }
+                      placeholder="Enter AWB / Tracking Number"
+                      className="w-full rounded-lg border px-3 py-2"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-1 block text-sm font-medium">
+                      Tracking URL
+                    </label>
+
+                    <input
+                      value={localCourier.tracking_url}
+                      onChange={(e) =>
+                        setLocalCourier({
+                          ...localCourier,
+                          tracking_url: e.target.value,
+                        })
+                      }
+                      placeholder="https://tracking.example.com"
+                      className="w-full rounded-lg border px-3 py-2"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-1 block text-sm font-medium">
+                      Shipping Amount
+                    </label>
+
+                    <input
+                      type="number"
+                      value={localCourier.shipping_amount}
+                      onChange={(e) =>
+                        setLocalCourier({
+                          ...localCourier,
+                          shipping_amount: e.target.value,
+                        })
+                      }
+                      placeholder="Enter shipping amount"
+                      className="w-full rounded-lg border px-3 py-2"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex gap-3 px-6 pb-6">
+                  <button
+                    onClick={saveLocalCourier}
+                    disabled={localSaving}
+                    className="flex-1 rounded-lg bg-orange-600 py-3 text-white"
+                  >
+                    {localSaving ? "Saving..." : "Save Courier"}
+                  </button>
+
+                  <button
+                    onClick={() => setLocalOpen(false)}
+                    className="flex-1 rounded-lg border py-3"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+          <ShippingProviderModal
+            open={shippingModal}
+            onClose={() => setShippingModal(false)}
+            onSelect={handleShippingProvider}
+          />
         </div>
       </div>
 
