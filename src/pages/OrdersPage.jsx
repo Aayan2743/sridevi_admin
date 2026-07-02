@@ -12,6 +12,8 @@ export default function OrdersPage() {
   const { can } = useAuth();
   const [shippingModal, setShippingModal] = useState(false);
   const [selectedOrderId, setSelectedOrderId] = useState(null);
+  const [cancellingId, setCancellingId] = useState(null);
+  const [xpressRates, setXpressRates] = useState([]);
 
   const [dimensionsModal, setDimensionsModal] = useState(false);
   const [selectedProvider, setSelectedProvider] = useState(null);
@@ -28,6 +30,8 @@ export default function OrdersPage() {
   const [localOpen, setLocalOpen] = useState(false);
 
   const [localSaving, setLocalSaving] = useState(false);
+
+  const [rateLoadingId, setRateLoadingId] = useState(null);
 
   const [localCourier, setLocalCourier] = useState({
     partner: "",
@@ -76,6 +80,7 @@ export default function OrdersPage() {
           perPage,
         },
       });
+      console.log("ORDERS LOAD RESPONSE:", res.data.data);
 
       setOrders(res.data.data || []);
       setPagination(res.data.pagination || { totalPages: 1 });
@@ -211,6 +216,198 @@ export default function OrdersPage() {
       });
     } finally {
       setLocalSaving(false);
+    }
+  };
+
+  const getXpressCouriers = async () => {
+    try {
+      const res = await api.get("/admin-dashboard/xpressbees/couriers");
+
+      console.log(res.data);
+
+      setXpressRates(res.data.data || []);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+  const cancelShipment = async (shippingId) => {
+    const confirmed = await Swal.fire({
+      title: "Cancel this shipment?",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#d33",
+      confirmButtonText: "Yes, cancel",
+      cancelButtonText: "No",
+    });
+    if (!confirmed.isConfirmed) return;
+
+    setCancellingId(shippingId);
+    try {
+      const res = await api.post(
+        `/admin-dashboard/shipping/${shippingId}/cancel-online`,
+      );
+
+      Swal.fire({
+        icon: "success",
+        title: "Cancelled",
+        text: res.data.message,
+        timer: 2000,
+        showConfirmButton: false,
+      });
+      loadOrders();
+    } catch (err) {
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: err.response?.data?.message || "Failed to cancel shipment",
+      });
+    } finally {
+      setCancellingId(null);
+    }
+  };
+
+  /* ================= GET SHIPMOZO RATE ================= */
+  const getShipmozoRate = async (shippingId) => {
+    setRateLoadingId(shippingId);
+    try {
+      const res = await api.post(
+        `/admin-dashboard/shipmozo/rate/online/${shippingId}`,
+      );
+
+      const rates = res.data.data?.data ?? [];
+
+      if (rates.length === 0) {
+        Swal.fire({
+          icon: "info",
+          title: "No Rates Available",
+          text: "No shipping rates found for this order.",
+          confirmButtonText: "OK",
+        });
+        return;
+      }
+
+      const PER_PAGE = 5;
+      let currentPage = 1;
+      const totalPages = Math.ceil(rates.length / PER_PAGE);
+
+      const renderTable = (page) => {
+        const start = (page - 1) * PER_PAGE;
+        const end = start + PER_PAGE;
+        const pageRates = rates.slice(start, end);
+
+        const rows = pageRates
+          .map(
+            (r) => `
+              <tr class="${start % 2 === 0 ? "bg-white" : "bg-gray-50"}">
+                <td class="p-2 border-b text-xs">
+                  <div class="flex items-center gap-2">
+                    ${r.image ? `<img src="${r.image}" alt="${r.name}" class="w-6 h-6 rounded object-contain" />` : ""}
+                    <span class="font-medium">${r.name || "-"}</span>
+                  </div>
+                </td>
+                <td class="p-2 border-b text-xs text-center">${r.estimated_delivery || "-"}</td>
+                <td class="p-2 border-b text-xs text-right">₹${Number(r.shipping_charges || 0).toFixed(2)}</td>
+                <td class="p-2 border-b text-xs text-right">₹${Number(r.gst || 0).toFixed(2)}</td>
+                <td class="p-2 border-b text-xs text-right font-semibold">₹${Number(r.total_charges || 0).toFixed(2)}</td>
+                <td class="p-2 border-b text-xs text-center">${r.minimum_chargeable_weight || "-"}</td>
+                <td class="p-2 border-b text-xs text-center">
+                  <button onclick="Swal.clickConfirm()" class="bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] px-2 py-1 rounded assign-btn" data-courier="${r.id}">
+                    Assign
+                  </button>
+                </td>
+              </tr>
+            `,
+          )
+          .join("");
+
+        const pagination = `
+            <div class="flex justify-between items-center mt-3 text-xs">
+              <span class="text-gray-500">Page ${page} of ${totalPages}</span>
+              <div class="flex gap-2">
+                <button onclick="window.__swalPrevPage()" class="px-3 py-1 border rounded hover:bg-gray-100 ${page <= 1 ? "opacity-40 pointer-events-none" : ""}">Prev</button>
+                <button onclick="window.__swalNextPage()" class="px-3 py-1 border rounded hover:bg-gray-100 ${page >= totalPages ? "opacity-40 pointer-events-none" : ""}">Next</button>
+              </div>
+            </div>
+          `;
+
+        return `
+            <div class="overflow-x-auto">
+              <table class="w-full text-left border-collapse">
+                <thead>
+                  <tr class="bg-gray-100">
+                    <th class="p-2 text-xs font-semibold border-b">Courier</th>
+                    <th class="p-2 text-xs font-semibold border-b text-center">Delivery</th>
+                    <th class="p-2 text-xs font-semibold border-b text-right">Shipping</th>
+                    <th class="p-2 text-xs font-semibold border-b text-right">GST</th>
+                    <th class="p-2 text-xs font-semibold border-b text-right">Total</th>
+                    <th class="p-2 text-xs font-semibold border-b text-center">Min Weight</th>
+                    <th class="p-2 text-xs font-semibold border-b text-center">Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${rows}
+                </tbody>
+              </table>
+              ${totalPages > 1 ? pagination : ""}
+            </div>
+          `;
+      };
+
+      const swal = Swal.fire({
+        icon: "success",
+        title: `Shipping Rates (${rates.length})`,
+        width: 950,
+        html: renderTable(currentPage),
+        confirmButtonText: "Close",
+        didOpen: () => {
+          document.querySelectorAll(".assign-btn").forEach((btn) => {
+            btn.addEventListener("click", async () => {
+              const courierId = btn.dataset.courier;
+
+              await assignShipmozoCourier(shippingId, courierId);
+
+              Swal.close();
+            });
+          });
+        },
+        willClose: () => {
+          delete window.__swalPrevPage;
+          delete window.__swalNextPage;
+        },
+      });
+    } catch (err) {
+      Swal.fire({
+        icon: "error",
+        title: "Rate Fetch Failed",
+        text: err.response?.data?.message || "Could not fetch shipping rate",
+      });
+    } finally {
+      setRateLoadingId(null);
+    }
+  };
+
+  const assignShipmozoCourier = async (shippingId, courierId) => {
+    try {
+      const res = await api.post(
+        `/admin-dashboard/shipmozo/assign-courier/online/${shippingId}`,
+        {
+          courier_id: courierId,
+        },
+      );
+
+      Swal.fire({
+        icon: "success",
+        title: "Courier Assigned",
+        text: res.data.message,
+      });
+
+      loadOrders();
+    } catch (err) {
+      Swal.fire({
+        icon: "error",
+        title: "Assignment Failed",
+        text: err.response?.data?.message || "Failed to assign courier",
+      });
     }
   };
 
@@ -419,6 +616,19 @@ export default function OrdersPage() {
                         Not Shipped
                       </span>
                     )}
+
+                    {o.shipping?.shipment_status === "booked" &&
+                      o.shipping?.shipping_provider === "shipmozo" && (
+                        <button
+                          onClick={() => getShipmozoRate(o.shipping.id)}
+                          disabled={rateLoadingId === o.shipping.id}
+                          className="w-full bg-purple-600 text-white text-[10px] px-1.5 py-1 rounded disabled:opacity-50 mt-1"
+                        >
+                          {rateLoadingId === o.shipping.id
+                            ? "Fetching..."
+                            : "Get Rate"}
+                        </button>
+                      )}
                   </td>
                   <td className="px-4 py-3 text-center">
                     {o.items?.length || 0}
@@ -438,20 +648,35 @@ export default function OrdersPage() {
                   </td>
 
                   <td className="px-4 py-3">
-                    <button
-                      onClick={() => {
-                        setSelectedOrderId(o.id);
-                        setShippingModal(true);
-                      }}
-                      className="w-full rounded-lg bg-blue-600 px-3 py-2 text-xs text-white hover:bg-blue-700"
-                    >
-                      Shipping
-                    </button>
+                    {o.shipping?.shipment_status === "booked" ? null : (
+                      <button
+                        onClick={() => {
+                          setSelectedOrderId(o.id);
+                          setShippingModal(true);
+                        }}
+                        className="w-full rounded-lg bg-blue-600 px-3 py-2 text-xs text-white hover:bg-blue-700"
+                      >
+                        Shipping
+                      </button>
+                    )}
+
+                    {o.shipping?.shipment_status === "booked" &&
+                      can("online_pos_orders.cancel shipping") && (
+                        <button
+                          onClick={() => cancelShipment(o.shipping.id)}
+                          disabled={cancellingId === o.shipping.id}
+                          className="mt-2 block w-full rounded bg-red-600 px-2 py-2 text-xs text-white disabled:opacity-50"
+                        >
+                          {cancellingId === o.shipping.id
+                            ? "Cancelling..."
+                            : "Cancel Shipment"}
+                        </button>
+                      )}
 
                     <select
                       value={o.order_status}
                       onChange={(e) => changeOrderStatus(o.id, e.target.value)}
-                      className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs text-slate-700 outline-none focus:ring-2 focus:ring-indigo-200"
+                      className="mt-2 w-full rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs text-slate-700 outline-none focus:ring-2 focus:ring-indigo-200"
                     >
                       <option value="placed">Placed</option>
                       <option value="bill_sent">Bill Sent</option>
